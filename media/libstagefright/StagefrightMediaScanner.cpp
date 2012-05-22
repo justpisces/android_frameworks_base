@@ -37,12 +37,14 @@ static bool FileHasAcceptableExtension(const char *extension) {
         ".mp3", ".mp4", ".m4a", ".3gp", ".3gpp", ".3g2", ".3gpp2",
         ".mpeg", ".ogg", ".mid", ".smf", ".imy", ".wma", ".aac",
         ".wav", ".amr", ".midi", ".xmf", ".rtttl", ".rtx", ".ota",
-        ".mkv", ".mka", ".webm", ".ts", ".fl", ".flac", ".mxmf", ".mpg",
-#ifdef QCOM_HARDWARE
-        ".avi"
-#else
-        ".qcp"
-#endif
+        ".mkv", ".mka", ".webm", ".ts", ".fl", ".flac", ".mxmf",
+        ".avi", ".mpeg", ".mpg"
+       /* add by Gary. start {{----------------------------------- */
+       , ".mp1", ".mp2", ".awb", ".oga", ".ape", ".ac3",
+       ".dts", ".omg", ".oma", ".midi", ".m4v", ".wmv", ".asf",
+       ".m2ts", ".rmvb", ".rm", ".mov", ".flv", ".f4v",
+       ".vob", ".pmp", ".m4r", ".ra"
+       /* add by Gary. end   -----------------------------------}} */
     };
     static const size_t kNumValidExtensions =
         sizeof(kValidExtensions) / sizeof(kValidExtensions[0]);

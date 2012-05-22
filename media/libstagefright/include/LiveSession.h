@@ -106,7 +106,14 @@ private:
     int32_t mMonitorQueueGeneration;
     int64_t mSeekTargetStartUs;
 
-    enum RefreshState {
+		bool								mHasSeekMsg;
+		bool								mLastDownloadTobeContinue;
+		int32_t								mLastDownloadOffset;
+		int32_t								mLastSubSeqNumber;
+
+
+		enum RefreshState
+		{
         INITIAL_MINIMUM_RELOAD_DELAY,
         FIRST_UNCHANGED_RELOAD_ATTEMPT,
         SECOND_UNCHANGED_RELOAD_ATTEMPT,
@@ -125,6 +132,7 @@ private:
     void onSeek(const sp<AMessage> &msg);
 
     status_t fetchFile(const char *url, sp<ABuffer> *out);
+		int32_t			fetchTsData(const char* url, bool continueLast);
     sp<M3UParser> fetchPlaylist(const char *url, bool *unchanged);
     size_t getBandwidthIndex();
 

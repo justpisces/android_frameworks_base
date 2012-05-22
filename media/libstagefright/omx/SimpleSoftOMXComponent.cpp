@@ -26,6 +26,11 @@
 
 namespace android {
 
+#define ANDROID_INDEX_PARAM_ENABLE_ANB "OMX.google.android.index.enableAndroidNativeBuffers"
+#define ANDROID_INDEX_PARAM_GET_ANB    "OMX.google.android.index.getAndroidNativeBufferUsage"
+#define ANDROID_INDEX_PARAM_USE_ANB    "OMX.google.android.index.useAndroidNativeBuffer"
+#define ANDROID_INDEX_PARAM_USE_ANB2   "OMX.google.android.index.useAndroidNativeBuffer2"
+
 SimpleSoftOMXComponent::SimpleSoftOMXComponent(
         const char *name,
         const OMX_CALLBACKTYPE *callbacks,
@@ -113,8 +118,29 @@ OMX_ERRORTYPE SimpleSoftOMXComponent::setParameter(
     Mutex::Autolock autoLock(mLock);
 
     CHECK(isSetParameterAllowed(index, params));
-
     return internalSetParameter(index, params);
+}
+
+OMX_ERRORTYPE SimpleSoftOMXComponent::getExtensionIndex(
+        const char *name, OMX_INDEXTYPE *index) {
+
+	OMX_ERRORTYPE ret = OMX_ErrorUndefined;
+	LOGV("getExtensionIndex:%s",name);
+    if (strcmp(name, ANDROID_INDEX_PARAM_ENABLE_ANB) == 0) {
+        *index = (OMX_INDEXTYPE)OMX_IndexParamEnableAndroidBuffers;
+        ret = OMX_ErrorNone;
+    } else if (strcmp(name, ANDROID_INDEX_PARAM_GET_ANB) == 0) {
+        *index = (OMX_INDEXTYPE)OMX_IndexParamGetAndroidNativeBuffer;
+        ret = OMX_ErrorNone;
+    } else if (strcmp(name, ANDROID_INDEX_PARAM_USE_ANB) == 0) {
+        *index = (OMX_INDEXTYPE)OMX_IndexParamUseAndroidNativeBuffer;
+        ret = OMX_ErrorNone;
+    } else if (strcmp(name, ANDROID_INDEX_PARAM_USE_ANB2) == 0) {
+        *index = (OMX_INDEXTYPE)OMX_IndexParamUseAndroidNativeBuffer2;
+        ret = OMX_ErrorNone;
+    }
+
+    return ret;
 }
 
 OMX_ERRORTYPE SimpleSoftOMXComponent::internalGetParameter(
