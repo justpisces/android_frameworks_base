@@ -155,6 +155,10 @@ enum {
     kKeyUseArbitraryMode  = 'ArbM'  //bool (int32_t)
 #endif
 
+#ifdef ALLWINNER_HARDWARE
+    kKeyScreenID = 'scrn'
+#endif
+
 };
 
 enum {

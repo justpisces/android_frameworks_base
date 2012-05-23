@@ -24,6 +24,10 @@
 
 #include <system/audio.h>
 
+#ifdef ALLWINNER_HARDWARE
+#include <CedarXRecorder.h>
+#endif
+
 namespace android {
 
 class Camera;
@@ -187,6 +191,11 @@ private:
     void clipNumberOfAudioChannels();
     void setDefaultProfileIfNecessary();
 
+#ifdef ALLWINNER_HARDWARE
+private:
+    CedarXRecorder *	mpCedarXRecorder;
+    bool		mbHWEncoder;
+#endif
 
     StagefrightRecorder(const StagefrightRecorder &);
     StagefrightRecorder &operator=(const StagefrightRecorder &);

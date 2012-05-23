@@ -41,6 +41,11 @@ public:
     status_t setDefaultBufferSize(uint32_t w, uint32_t h);
     status_t setDefaultBufferFormat(uint32_t format);
 
+#ifdef ALLWINNER_HARDWARE
+    bool     usehwcomposer;
+    bool     usehwinit;
+#endif
+
 public:
     virtual status_t setBufferCount(int bufferCount);
 
@@ -57,6 +62,14 @@ protected:
 
     virtual status_t connect(int api,
             uint32_t* outWidth, uint32_t* outHeight, uint32_t* outTransform);
+
+#ifdef ALLWINNER_HARDWARE
+    virtual status_t disconnect(int api);
+
+    virtual int      setParameter(uint32_t cmd,uint32_t value);
+
+    virtual uint32_t getParameter(uint32_t cmd);
+#endif
 };
 
 // ---------------------------------------------------------------------------

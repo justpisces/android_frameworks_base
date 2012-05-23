@@ -46,7 +46,11 @@ struct LiveSession : public AHandler {
     void disconnect();
 
     // Blocks until seek is complete.
+    #ifdef ALLWINNER_HARDWARE
+    int64_t seekTo(int64_t timeUs);
+    #else
     void seekTo(int64_t timeUs, int64_t* newSeekTime = NULL);
+    #endif
 
     status_t getDuration(int64_t *durationUs);
     bool isSeekable();
@@ -100,9 +104,15 @@ private:
     Condition mCondition;
     int64_t mDurationUs;
     bool mSeeking;
+    #ifdef ALLWINNER_HARDWARE
+    bool mSeekDone;
+    #endif
     bool mDisconnectPending;
 
     int32_t mMonitorQueueGeneration;
+    #ifdef ALLWINNER_HARDWARE
+    int64_t mSeekTargetStartUs;
+    #endif
 
     enum RefreshState {
         INITIAL_MINIMUM_RELOAD_DELAY,

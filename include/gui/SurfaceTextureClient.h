@@ -71,6 +71,10 @@ private:
     int dispatchSetUsage(va_list args);
     int dispatchLock(va_list args);
     int dispatchUnlockAndPost(va_list args);
+#ifdef ALLWINNER_HARDWARE
+    int dispatchSetParameter(va_list args);
+    int dispatchGetParameter(va_list args);
+#endif
 #ifdef QCOM_HARDWARE
     int dispatchPerformQcomOperation(int operation, va_list args);
 #endif
@@ -85,6 +89,10 @@ protected:
     virtual int setSwapInterval(int interval);
 
     virtual int connect(int api);
+#ifdef ALLWINNER_HARDWARE
+    virtual int setParameter(uint32_t cmd,uint32_t value);
+    virtual int getParameter(uint32_t cmd);
+#endif
     virtual int disconnect(int api);
     virtual int setBufferCount(int bufferCount);
     virtual int setBuffersDimensions(int w, int h);

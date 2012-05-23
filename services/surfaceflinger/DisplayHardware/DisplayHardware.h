@@ -28,7 +28,7 @@
 #include <EGL/eglext.h>
 
 #include <pixelflinger/pixelflinger.h>
-
+#include <ui/DisplayDispatcher.h>
 #include "GLExtensions.h"
 
 #include "DisplayHardware/DisplayHardwareBase.h"
@@ -93,9 +93,9 @@ public:
 
     // Hardware Composer
     HWComposer& getHwComposer() const;
-    
+    sp<DisplayDispatcher>  mDisplayDispatcher;
     status_t compositionComplete() const;
-    
+
     Rect getBounds() const {
         return Rect(mWidth, mHeight);
     }
@@ -104,6 +104,8 @@ public:
     // only for debugging
     int getCurrentBufferIndex() const;
 
+    int setDispProp(int cmd,int param0,int param1,int param2) const;
+    int getDispProp(int cmd,int param0,int param1) const;
 private:
     void init(uint32_t displayIndex) __attribute__((noinline));
     void fini() __attribute__((noinline));
@@ -124,7 +126,7 @@ private:
     mutable uint32_t mPageFlipCount;
     GLint           mMaxViewportDims[2];
     GLint           mMaxTextureSize;
-    
+
     HWComposer*     mHwc;
 
     sp<FramebufferNativeWindow> mNativeWindow;

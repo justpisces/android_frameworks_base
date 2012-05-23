@@ -96,15 +96,27 @@ void LiveSession::disconnect() {
     (new AMessage(kWhatDisconnect, id()))->post();
 }
 
+#ifdef ALLWINNER_HARDWARE
+int64_t LiveSession::seekTo(int64_t timeUs) {
+    Mutex::Autolock autoLock(mLock);
+    mSeekDone = false;
+#else
 void LiveSession::seekTo(int64_t timeUs, int64_t* newSeekTime ) {
     Mutex::Autolock autoLock(mLock);
     mSeeking = true;
     mHTTPDataSource->disconnect();
+#endif
 
     sp<AMessage> msg = new AMessage(kWhatSeek, id());
     msg->setInt64("timeUs", timeUs);
     msg->post();
 
+#ifdef ALLWINNER_HARDWARE
+    while (!mSeekDone) {
+        mCondition.wait(mLock);
+    }
+    return mSeekTargetStartUs;
+#else
     while (mSeeking) {
         mCondition.wait(mLock);
         if( newSeekTime != NULL ) {
@@ -113,6 +125,7 @@ void LiveSession::seekTo(int64_t timeUs, int64_t* newSeekTime ) {
         }
     }
     mSeekTimeUs = -1;
+#endif
 }
 
 void LiveSession::onMessageReceived(const sp<AMessage> &msg) {

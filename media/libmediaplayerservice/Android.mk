@@ -43,6 +43,28 @@ LOCAL_C_INCLUDES :=                                                 \
 	$(TOP)/frameworks/base/media/libstagefright/rtsp                \
 	$(TOP)/external/tremolo/Tremolo \
 
+ifeq ($(TARGET_BOARD_PLATFORM), sun4i)
+LOCAL_CFLAGS += -DALLWINNER_HARDWARE
+
+LOCAL_SRC_FILES += CedarAPlayerWrapper.cpp \
+        CedarPlayer.cpp             \
+        SimpleMediaFormatProbe.cpp  \
+#
+
+LOCAL_SHARED_LIBRARIES += libCedarX \
+        libCedarA \
+#
+
+LOCAL_C_INCLUDES += \
+        $(TOP)/external/cedarx/CedarXAndroid/IceCreamSandwich \
+        $(TOP)/external/cedarx/CedarX/include \
+        $(TOP)/external/cedarx/CedarX/include/include_audio \
+        $(TOP)/external/cedarx/CedarX/include/include_cedarv \
+        $(TOP)/external/cedarx/CedarA \
+        $(TOP)/external/cedarx/CedarA/include \
+#
+endif
+
 LOCAL_MODULE:= libmediaplayerservice
 
 include $(BUILD_SHARED_LIBRARY)

@@ -62,6 +62,10 @@ ifeq ($(BOARD_USE_SAMSUNG_SEPARATEDSTREAM),true)
     LOCAL_CFLAGS += -DUSE_SAMSUNG_SEPARATEDSTREAM
 endif
 
+ifeq ($(TARGET_BOARD_PLATFORM),sun4i)
+    LOCAL_CFLAGS += -DALLWINNER_HARDWARE
+endif
+
 LOCAL_SHARED_LIBRARIES := \
     libui libcutils libutils libbinder libsonivox libicuuc libexpat \
     libcamera_client libstagefright_foundation \

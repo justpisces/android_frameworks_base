@@ -114,9 +114,11 @@ status_t HWComposer::prepare() const {
         size_t count = mList->numHwLayers;
         for (size_t i=0 ; i<count ; i++) {
             hwc_layer& l(mList->hwLayers[i]);
+            #ifndef ALLWINNER_HARDWARE
             if (l.flags & HWC_SKIP_LAYER) {
                 l.compositionType = HWC_FRAMEBUFFER;
             }
+            #endif
             switch (l.compositionType) {
                 case HWC_OVERLAY:
                     numOVLayers++;
@@ -185,6 +187,26 @@ hwc_layer_t* HWComposer::getLayers() const {
 #ifdef QCOM_HARDWARE
 uint32_t HWComposer::getFlags() const {
     return mList ? mList->flags : 0;
+}
+#endif
+#ifdef ALLWINNER_HARDWARE
+int  HWComposer::setParameter(uint32_t cmd,uint32_t value)
+{
+    if (mHwc)
+    {
+        int err = mHwc->setparameter(mHwc, cmd, value);
+        return (status_t)err;
+    }
+    return NO_ERROR;
+}
+
+uint32_t HWComposer::getParameter(uint32_t cmd)
+{
+    if (mHwc)
+    {
+        return mHwc->getparameter(mHwc, cmd);
+    }
+    return NO_ERROR;
 }
 #endif
 

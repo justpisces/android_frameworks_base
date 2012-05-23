@@ -21,6 +21,10 @@
 #include <surfaceflinger/ISurfaceComposer.h>
 #include <surfaceflinger/SurfaceComposerClient.h>
 
+#ifdef ALLWINNER_HARDWARE
+#include <hardware/hwcomposer.h>
+#endif
+
 #include <utils/Log.h>
 
 #ifdef QCOM_HARDWARE
@@ -336,6 +340,15 @@ int SurfaceTextureClient::perform(int operation, va_list args)
     case NATIVE_WINDOW_API_DISCONNECT:
         res = dispatchDisconnect(args);
         break;
+#ifdef ALLWINNER_HARDWARE
+    case NATIVE_WINDOW_SETPARAMETER:
+        res = dispatchSetParameter(args);
+        break;
+
+    case NATIVE_WINDOW_GETPARAMETER:
+        res = dispatchGetParameter(args);
+        break;
+#endif
     default:
 #ifdef QCOM_HARDWARE
         res = dispatchPerformQcomOperation(operation, args);
@@ -376,6 +389,23 @@ int SurfaceTextureClient::dispatchDisconnect(va_list args) {
     return disconnect(api);
 }
 
+#ifdef ALLWINNER_HARDWARE
+int SurfaceTextureClient::dispatchSetParameter(va_list args)
+{
+    int cmd     = va_arg(args,int);
+    int value   = va_arg(args,int);
+
+    return setParameter((uint32_t)cmd,(uint32_t)value);
+}
+
+int SurfaceTextureClient::dispatchGetParameter(va_list args)
+{
+    int cmd = va_arg(args,int);
+
+    return getParameter((uint32_t)cmd);
+}
+#endif
+
 int SurfaceTextureClient::dispatchSetUsage(va_list args) {
     int usage = va_arg(args, int);
     return setUsage(usage);
@@ -392,14 +422,36 @@ int SurfaceTextureClient::dispatchSetBufferCount(va_list args) {
 }
 
 int SurfaceTextureClient::dispatchSetBuffersGeometry(va_list args) {
+    #ifdef ALLWINNER_HARDWARE
+    layerinitpara_t  layer_info;
+    #endif
     int w = va_arg(args, int);
     int h = va_arg(args, int);
     int f = va_arg(args, int);
+    #ifdef ALLWINNER_HARDWARE
+    int screenid = va_arg(args, int);
+    #endif
     int err = setBuffersDimensions(w, h);
     if (err != 0) {
         return err;
     }
+
+    #ifdef ALLWINNER_HARDWARE
+    LOGD("dispatchSetBuffersGeometry1!\n");
+    err = setBuffersFormat(f);
+    if (err != 0)
+        return err;
+
+    LOGD("dispatchSetBuffersGeometry2!\n");
+
+    layer_info.w 			= w;
+    layer_info.h 			= h;
+    layer_info.format 		= f;
+    layer_info.screenid		= screenid;
+    return setParameter(HWC_LAYER_SETINITPARA,(uint32_t)&layer_info);
+    #else
     return setBuffersFormat(f);
+    #endif
 }
 
 int SurfaceTextureClient::dispatchSetBuffersDimensions(va_list args) {
@@ -476,6 +528,22 @@ int SurfaceTextureClient::disconnect(int api) {
     return err;
 }
 
+#ifdef ALLWINNER_HARDWARE
+int SurfaceTextureClient::setParameter(uint32_t cmd,uint32_t value)
+{
+    LOGV("SurfaceTextureClient::setParameter");
+
+    return mSurfaceTexture->setParameter(cmd,value);
+}
+
+int SurfaceTextureClient::getParameter(uint32_t cmd)
+{
+    LOGV("SurfaceTextureClient::setParameter");
+
+    return mSurfaceTexture->getParameter(cmd);
+}
+#endif
+
 int SurfaceTextureClient::setUsage(uint32_t reqUsage)
 {
     LOGV("SurfaceTextureClient::setUsage");
@@ -550,7 +618,11 @@ int SurfaceTextureClient::setBuffersDimensions(int w, int h)
     mReqWidth = w;
     mReqHeight = h;
 
+    #ifdef ALLWINNER_HARDWARE
+    status_t err = mSurfaceTexture->setCrop(Rect(w, h));
+    #else
     status_t err = mSurfaceTexture->setCrop(Rect(0, 0));
+    #endif
     LOGE_IF(err, "ISurfaceTexture::setCrop(...) returned %s", strerror(-err));
 
     return err;

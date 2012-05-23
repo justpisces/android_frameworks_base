@@ -43,6 +43,8 @@ include $(CLEAR_VARS)
 LOCAL_SRC_FILES:= \
 	$(commonSources) \
 	EGLUtils.cpp \
+	DisplayDispatcher.cpp \
+	DisplaySemaphore.cpp \
 	FramebufferNativeWindow.cpp \
 	GraphicBuffer.cpp \
 	GraphicBufferAllocator.cpp \

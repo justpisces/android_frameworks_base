@@ -29,6 +29,10 @@
 
 #include <hardware/hardware.h>
 
+#ifdef ALLWINNER_HARDWARE
+#include <hardware/hwcomposer.h>
+#endif
+
 #include <surfaceflinger/ISurfaceComposer.h>
 #include <surfaceflinger/SurfaceComposerClient.h>
 #include <surfaceflinger/IGraphicBufferAlloc.h>
@@ -746,7 +750,13 @@ status_t SurfaceTexture::connect(int api,
         case NATIVE_WINDOW_API_CPU:
         case NATIVE_WINDOW_API_MEDIA:
         case NATIVE_WINDOW_API_CAMERA:
+#ifdef ALLWINNER_HARDWARE
+        case NATIVE_WINDOW_API_MEDIA_HW:
+        case NATIVE_WINDOW_API_CAMERA_HW:
+            if (mConnectedApi != NO_CONNECTED_API && (mConnectedApi != api)) {
+#else
             if (mConnectedApi != NO_CONNECTED_API) {
+#endif
                 ST_LOGE("connect: already connected (cur=%d, req=%d)",
                         mConnectedApi, api);
                 err = -EINVAL;
@@ -780,6 +790,10 @@ status_t SurfaceTexture::disconnect(int api) {
         case NATIVE_WINDOW_API_CPU:
         case NATIVE_WINDOW_API_MEDIA:
         case NATIVE_WINDOW_API_CAMERA:
+#ifdef ALLWINNER_HARDWARE
+        case NATIVE_WINDOW_API_MEDIA_HW:
+        case NATIVE_WINDOW_API_CAMERA_HW:
+#endif
             if (mConnectedApi == api) {
                 drainQueueAndFreeBuffersLocked();
                 mConnectedApi = NO_CONNECTED_API;
@@ -1256,6 +1270,40 @@ void SurfaceTexture::abandon() {
 void SurfaceTexture::setName(const String8& name) {
     mName = name;
 }
+
+#ifdef ALLWINNER_HARDWARE
+bool SurfaceTexture::IsHardwareRenderSupport()
+{
+    if(mPixelFormat >= HWC_FORMAT_MINVALUE && mPixelFormat <= HWC_FORMAT_MAXVALUE)
+        return true;
+
+    return false;
+}
+
+int SurfaceTexture::setParameter(uint32_t cmd,uint32_t value)
+{
+    mCurrentTransform   = mNextTransform;
+    mCurrentCrop        = mNextCrop;
+    mCurrentScalingMode = mNextScalingMode;
+    if(cmd == HWC_LAYER_SETINITPARA)
+    {
+        layerinitpara_t  *layer_info;
+        layer_info = (layerinitpara_t  *)value;
+        mPixelFormat = layer_info->format;
+    }
+
+    if(IsHardwareRenderSupport()) {
+        return 100;
+    } else {
+        return 0;
+    }
+}
+
+uint32_t SurfaceTexture::getParameter(uint32_t cmd)
+{
+    return 0;
+}
+#endif
 
 void SurfaceTexture::dump(String8& result) const
 {

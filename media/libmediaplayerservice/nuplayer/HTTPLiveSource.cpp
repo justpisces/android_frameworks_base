@@ -169,12 +169,20 @@ status_t NuPlayer::HTTPLiveSource::getDuration(int64_t *durationUs) {
     return mLiveSession->getDuration(durationUs);
 }
 
+#ifdef ALLWINNER_HARDWARE
+status_t NuPlayer::HTTPLiveSource::seekTo(int64_t seekTimeUs) {
+#else
 status_t NuPlayer::HTTPLiveSource::seekTo(int64_t seekTimeUs, int64_t* newSeekTime) {
+#endif
     // We need to make sure we're not seeking until we have seen the very first
     // PTS timestamp in the whole stream (from the beginning of the stream).
     while (!mTSParser->PTSTimeDeltaEstablished() && feedMoreTSData() == OK) {
         usleep(100000);
     }
+
+    #ifdef ALLWINNER_HARDWARE
+    mLiveSession->seekTo(seekTimeUs);
+    #else
     if( mFinalResult != OK  ) {
        LOGW("Error state %d, Ignore this seek", mFinalResult);
        return mFinalResult;
@@ -184,6 +192,7 @@ status_t NuPlayer::HTTPLiveSource::seekTo(int64_t seekTimeUs, int64_t* newSeekTi
     if( *newSeekTime >= 0 ) {
        mTSParser->signalDiscontinuity( ATSParser::DISCONTINUITY_SEEK, NULL);
     }
+    #endif
 
     return OK;
 }

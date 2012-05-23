@@ -67,6 +67,12 @@ public:
     // updated in preapre()
     size_t getLayerCount(int type) const;
 
+#ifdef ALLWINNER_HARDWARE
+    int setParameter(uint32_t cmd,uint32_t value);
+
+    uint32_t getParameter(uint32_t cmd);
+#endif
+
 #ifdef QCOM_HARDWARE
     // gets the list flags
     uint32_t getFlags() const;

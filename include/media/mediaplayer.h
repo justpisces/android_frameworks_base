@@ -26,6 +26,10 @@
 #include <utils/KeyedVector.h>
 #include <utils/String8.h>
 
+#ifdef ALLWINNER_HARDWARE
+#include "mediaplayerinfo.h"
+#endif
+
 class ANativeWindow;
 
 namespace android {
@@ -118,6 +122,10 @@ enum media_info_type {
 };
 
 
+#ifdef ALLWINNER_HARDWARE
+#define MASTER_SCREEN        0
+#define SLAVE_SCREEN         1
+#endif
 
 enum media_player_states {
     MEDIA_PLAYER_STATE_ERROR        = 0,
@@ -153,6 +161,9 @@ class MediaPlayerListener: virtual public RefBase
 {
 public:
     virtual void notify(int msg, int ext1, int ext2, const Parcel *obj) = 0;
+    #ifdef ALLWINNER_HARDWARE
+    virtual int  parse3dFile(int type) = 0;
+    #endif
 };
 
 class MediaPlayer : public BnMediaPlayerClient,
@@ -201,6 +212,56 @@ public:
             status_t        attachAuxEffect(int effectId);
             status_t        setParameter(int key, const Parcel& request);
             status_t        getParameter(int key, Parcel* reply);
+#ifdef ALLWINNER_HARDWARE
+    static  status_t        setScreen(int screen);
+    static  status_t        getScreen(int *screen);
+    static  status_t        isPlayingVideo(bool *playing);
+            int             getSubCount();
+            int             getSubList(MediaPlayer_SubInfo *infoList, int count);
+            int             getCurSub();
+            status_t        switchSub(int index);
+            status_t        setSubGate(bool showSub);
+            bool            getSubGate();
+            status_t        setSubColor(int color);
+            int             getSubColor();
+            status_t        setSubFrameColor(int color);
+            int             getSubFrameColor();
+            status_t        setSubFontSize(int size);
+            int             getSubFontSize();
+            status_t        setSubCharset(const char *charset);
+            status_t        getSubCharset(char *charset);
+            status_t        setSubPosition(int percent);
+            int             getSubPosition();
+            status_t        setSubDelay(int time);
+            int             getSubDelay();
+            int             getTrackCount();
+            int             getTrackList(MediaPlayer_TrackInfo *infoList, int count);
+            int             getCurTrack();
+            status_t        switchTrack(int index);
+            status_t        setInputDimensionType(int type);
+            int             getInputDimensionType();
+            status_t        setOutputDimensionType(int type);
+            int             getOutputDimensionType();
+            status_t        setAnaglaghType(int type);
+            int             getAnaglaghType();
+            status_t        getVideoEncode(char *encode);
+            int             getVideoFrameRate();
+            status_t        getAudioEncode(char *encode);
+            int             getAudioBitRate();
+            int             getAudioSampleRate();
+            int             parse3dFile(int type);
+            status_t        enableScaleMode(bool enable, int width, int height);
+    static  status_t        setVppGate(bool enableVpp);
+    static  bool            getVppGate();
+    static  status_t        setLumaSharp(int value);
+    static  int             getLumaSharp();
+    static  status_t        setChromaSharp(int value);
+    static  int             getChromaSharp();
+    static  status_t        setWhiteExtend(int value);
+    static  int             getWhiteExtend();
+    static  status_t        setBlackExtend(int value);
+    static  int             getBlackExtend();
+#endif
 
 private:
             void            clear_l();
@@ -231,6 +292,15 @@ private:
     int                         mVideoHeight;
     int                         mAudioSessionId;
     float                       mSendLevel;
+#ifdef ALLWINNER_HARDWARE
+    bool                        mSubGate;
+    int                         mSubColor;
+    int                         mSubFrameColor;
+    int                         mSubPosition;
+    int                         mSubDelay;
+    int                         mSubFontSize;
+    char                        mSubCharset[MEDIAPLAYER_NAME_LEN_MAX];
+#endif
 };
 
 }; // namespace android

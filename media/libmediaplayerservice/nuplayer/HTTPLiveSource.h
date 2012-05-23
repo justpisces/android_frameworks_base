@@ -41,7 +41,11 @@ struct NuPlayer::HTTPLiveSource : public NuPlayer::Source {
     virtual status_t dequeueAccessUnit(bool audio, sp<ABuffer> *accessUnit);
 
     virtual status_t getDuration(int64_t *durationUs);
+#ifdef ALLWINNER_HARDWARE
+    virtual status_t seekTo(int64_t seekTimeUs);
+#else
     virtual status_t seekTo(int64_t seekTimeUs, int64_t* newSeek = NULL);
+#endif
 
     virtual bool isSeekable();
 

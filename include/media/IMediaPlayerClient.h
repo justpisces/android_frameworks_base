@@ -29,6 +29,9 @@ public:
     DECLARE_META_INTERFACE(MediaPlayerClient);
 
     virtual void notify(int msg, int ext1, int ext2, const Parcel *obj) = 0;
+#ifdef ALLWINNER_HARDWARE
+    virtual int  parse3dFile(int type) {return 0;};
+#endif
 };
 
 // ----------------------------------------------------------------------------

@@ -78,7 +78,22 @@ DisplayHardware::DisplayHardware(
     : DisplayHardwareBase(flinger, dpy),
       mFlinger(flinger), mFlags(0), mHwc(0)
 {
+    char property[PROPERTY_VALUE_MAX];
     init(dpy);
+    mDisplayDispatcher = NULL;
+
+    if (property_get("ro.display.switch", property, NULL) > 0)
+    {
+        if (atoi(property) == 1)
+        {
+            LOGW("display dispatcher enabled");
+            mDisplayDispatcher = new DisplayDispatcher();
+        } else {
+            LOGW("display dispatcher disable");
+        }
+    } else {
+        LOGW("display dispatcher disable");
+    }
 }
 
 DisplayHardware::~DisplayHardware()
@@ -375,20 +390,25 @@ void DisplayHardware::flip(const Region& dirty) const
     EGLDisplay dpy = mDisplay;
     EGLSurface surface = mSurface;
 
-#ifdef EGL_ANDROID_swap_rectangle    
+#ifdef EGL_ANDROID_swap_rectangle
     if (mFlags & SWAP_RECTANGLE) {
         const Region newDirty(dirty.intersect(bounds()));
         const Rect b(newDirty.getBounds());
         eglSetSwapRectangleANDROID(dpy, surface,
                 b.left, b.top, b.width(), b.height());
-    } 
+    }
 #endif
-    
+
     if (mFlags & PARTIAL_UPDATES) {
         mNativeWindow->setUpdateRectangle(dirty.getBounds());
     }
-    
+
     mPageFlipCount++;
+
+    if (mDisplayDispatcher != NULL)
+    {
+        mDisplayDispatcher->startSwapBuffer();
+    }
 
     if (mHwc->initCheck() == NO_ERROR) {
         mHwc->commit();
@@ -412,6 +432,25 @@ void DisplayHardware::makeCurrent() const
     eglMakeCurrent(mDisplay, mSurface, mSurface, mContext);
 }
 
+int DisplayHardware::setDispProp(int cmd,int param0,int param1,int param2) const
+{
+    if (mDisplayDispatcher != NULL)
+    {
+        return mDisplayDispatcher->setDispProp(cmd,param0,param1,param2);
+    }
+
+    return  0;
+}
+
+int DisplayHardware::getDispProp(int cmd,int param0,int param1) const
+{
+    if (mDisplayDispatcher != NULL)
+    {
+        return mDisplayDispatcher->getDispProp(cmd,param0,param1);
+    }
+
+    return  0;
+}
 void DisplayHardware::dump(String8& res) const
 {
     mNativeWindow->dump(res);
