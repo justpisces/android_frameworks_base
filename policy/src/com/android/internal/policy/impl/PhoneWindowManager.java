@@ -60,6 +60,7 @@ import android.provider.Settings;
 
 import com.android.internal.R;
 import com.android.internal.app.ShutdownThread;
+import com.android.internal.os.DeviceKeyHandler;
 import com.android.internal.policy.PolicyManager;
 import com.android.internal.statusbar.IStatusBarService;
 import com.android.internal.telephony.ITelephony;
@@ -147,8 +148,6 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -261,8 +260,7 @@ public class PhoneWindowManager implements WindowManagerPolicy {
                 KeyEvent.KEYCODE_CALCULATOR, Intent.CATEGORY_APP_CALCULATOR);
     }
 
-    Object mDeviceKeyHandler = null;
-    Method mDeviceKeyHandlerMethod = null;
+    DeviceKeyHandler mDeviceKeyHandler;
 
     /**
      * Lock protecting internal state.  Must not call out into window
@@ -954,13 +952,11 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             try {
                 Class<?> klass = loader.loadClass(deviceKeyHandlerClass);
                 Constructor<?> constructor = klass.getConstructor(Context.class);
-                mDeviceKeyHandler = constructor.newInstance(mContext);
-                mDeviceKeyHandlerMethod = klass.getDeclaredMethod(
-                        "handleKeyEvent", KeyEvent.class);
-
-                Log.d(TAG, "Loaded device key handler");
+                mDeviceKeyHandler = (DeviceKeyHandler) constructor.newInstance(
+                        mContext);
+                Slog.d(TAG, "Loaded device key handler");
             } catch (Exception e) {
-                Slog.d(TAG, "Could not get device key Handler "
+                Slog.d(TAG, "Could not instantiate device key handler "
                         + deviceKeyHandlerClass + " from class "
                         + deviceKeyHandlerLib, e);
             }
@@ -1863,13 +1859,11 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             showOrHideRecentAppsDialog(RECENT_APPS_BEHAVIOR_DISMISS_AND_SWITCH);
         }
 
-        if (mDeviceKeyHandler != null && mDeviceKeyHandlerMethod != null) {
+        if (mDeviceKeyHandler != null) {
             try {
-                Integer ret = (Integer) mDeviceKeyHandlerMethod.invoke(
-                        mDeviceKeyHandler, event);
-                return ret;
+                return mDeviceKeyHandler.handleKeyEvent(event);
             } catch (Exception e) {
-                Slog.d(TAG, "Could not invoke device key handler", e);
+                Slog.d(TAG, "Could not dispatch event to device key handler", e);
             }
         }
 
