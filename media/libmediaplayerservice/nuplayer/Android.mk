@@ -1,6 +1,10 @@
 LOCAL_PATH:= $(call my-dir)
 include $(CLEAR_VARS)
 
+ifeq ($(TARGET_BOARD_PLATFORM), sun4i)
+LOCAL_CFLAGS += -DALLWINNER_HARDWARE
+endif
+
 LOCAL_SRC_FILES:=                       \
         HTTPLiveSource.cpp              \
         NuPlayer.cpp                    \
