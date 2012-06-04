@@ -157,6 +157,8 @@ import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.List;
 
+import android.view.DisplayManager;
+
 /**
  * WindowManagerPolicy implementation for the Android phone UI.  This
  * introduces a new method suffix, Lp, for an internal lock of the
@@ -1006,6 +1008,19 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             // Retrieve current sticky dock event broadcast.
             mDockMode = intent.getIntExtra(Intent.EXTRA_DOCK_STATE,
                     Intent.EXTRA_DOCK_STATE_UNDOCKED);
+        }
+        
+        // register for allwinner HDMI event broadcast
+        IntentFilter filterHDMI = new IntentFilter();
+        filterHDMI.addAction(Intent.ACTION_HDMISTATUS_CHANGED);
+        filterHDMI.addAction(Intent.ACTION_TVDACSTATUS_CHANGED);
+        Intent intentHDMI = context.registerReceiver(mHDMIReceiver, filterHDMI);
+        if (intentHDMI != null) {
+        	if (intentHDMI.getIntExtra(DisplayManager.EXTRA_HDMISTATUS, 0) == 1) {
+        		setHdmiPlugged(true);
+        	} else {
+        		setHdmiPlugged(false);
+        	}
         }
 
         mVibrator = new Vibrator();
@@ -3358,6 +3373,18 @@ public class PhoneWindowManager implements WindowManagerPolicy {
             updateRotation(true);
             updateOrientationListenerLp();
         }
+    };
+    
+    BroadcastReceiver mHDMIReceiver = new BroadcastReceiver() {
+    	    public void onReceive(Context context, Intent intent) {
+    	    	     if (Intent.ACTION_HDMISTATUS_CHANGED.equals(intent.getAction())) {
+    	    	     	     if(intent.getIntExtra(DisplayManager.EXTRA_HDMISTATUS, 0) == 1) {
+    	    	     	     	     setHdmiPlugged(true);
+    	    	     	     } else {
+    	    	     	     	     setHdmiPlugged(false);
+    	    	     	     }
+    	    	     }
+    	    }
     };
 
     BroadcastReceiver mThemeChangeReceiver = new BroadcastReceiver() {
