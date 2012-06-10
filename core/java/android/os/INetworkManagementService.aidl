@@ -79,6 +79,11 @@ interface INetworkManagementService
     void setInterfaceIpv6PrivacyExtensions(String iface, boolean enable);
 
     /**
+     * Sets the configuration of the specified interface
+     */
+    void renameInterface(String iface, String newname);
+
+    /**
      * Disable IPv6 on an interface
      */
     void disableIpv6(String iface);

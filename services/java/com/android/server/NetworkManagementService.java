@@ -424,6 +424,20 @@ public class NetworkManagementService extends INetworkManagementService.Stub
         return cfg;
     }
 
+    public void renameInterface(String iface, String newname) throws IllegalStateException {
+        mContext.enforceCallingOrSelfPermission(CHANGE_NETWORK_STATE, TAG);
+        if (newname.isEmpty()) {
+            throw new IllegalStateException("Null Newname given");
+        }
+        String cmd = String.format("interface rename %s %s", iface, newname);
+        try {
+            mConnector.doCommand(cmd);
+        } catch (NativeDaemonConnectorException e) {
+            throw new IllegalStateException(
+                    "Unable to communicate with native daemon to interface rename - " + e);
+        }
+    }
+
     public void setInterfaceConfig(
             String iface, InterfaceConfiguration cfg) throws IllegalStateException {
         mContext.enforceCallingOrSelfPermission(CHANGE_NETWORK_STATE, TAG);

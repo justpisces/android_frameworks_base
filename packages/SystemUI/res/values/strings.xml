@@ -403,4 +403,8 @@
     <string name="navbar_menu_conditional_button">Menu (autoHide) button</string>
     <string name="navbar_menu_always_button">Menu (alwaysShow) button</string>
     <string name="navbar_menu_big_button">Menu button</string>
+
+	<!-- ethernet string  -->
+    <string name="ethernet_link">Ethernet connect to network</string>
+	<string name="ethernet_description">Ethernet</string>
 </resources>

@@ -45,15 +45,17 @@ public class SignalClusterView
 
     private boolean mWifiVisible = false;
     private int mWifiStrengthId = 0, mWifiActivityId = 0;
+    private int mEthernetStateId = 0, mEthernetActivityId = 0;
+    private boolean mEthernetVisible = false;
     private boolean mMobileVisible = false;
     private int mMobileStrengthId = 0, mMobileActivityId = 0, mMobileTypeId = 0;
     private boolean mIsAirplaneMode = false;
-    private String mWifiDescription, mMobileDescription, mMobileTypeDescription;
+    private String mWifiDescription, mMobileDescription, mMobileTypeDescription, mEthernetDescription;;
 
     private int mSignalClusterStyle;
 
-    ViewGroup mWifiGroup, mMobileGroup;
-    ImageView mWifi, mMobile, mWifiActivity, mMobileActivity, mMobileType;
+    ViewGroup mWifiGroup, mMobileGroup, mEthernetGroup;;
+    ImageView mWifi, mMobile, mWifiActivity, mMobileActivity, mMobileType, mEthernet;
     View mSpacer;
 
     Handler mHandler;
@@ -109,6 +111,8 @@ public class SignalClusterView
         mMobileActivity = (ImageView) findViewById(R.id.mobile_inout);
         mMobileType     = (ImageView) findViewById(R.id.mobile_type);
         mSpacer         =             findViewById(R.id.spacer);
+        mEthernetGroup  = (ViewGroup) findViewById(R.id.ethernet_combo);
+        mEthernet       = (ImageView) findViewById(R.id.ethernet_state);
 
         apply();
     }
@@ -148,6 +152,14 @@ public class SignalClusterView
         apply();
     }
 
+	public void setEthernetIndicators(boolean visible,int strengthIcon,int activityIcon,
+		    String contentDescription){
+		mEthernetVisible = visible;
+		mEthernetStateId = strengthIcon;
+		mEthernetActivityId = activityIcon;
+		mEthernetDescription = contentDescription;
+		apply();
+	}
     public void setIsAirplaneMode(boolean is) {
         mIsAirplaneMode = is;
     }
@@ -165,6 +177,13 @@ public class SignalClusterView
             mWifiGroup.setVisibility(View.GONE);
         }
 
+        if(mEthernetVisible){
+           mEthernetGroup.setVisibility(View.VISIBLE);
+           mEthernet.setImageResource(mEthernetStateId);
+           mEthernetGroup.setContentDescription(mEthernetDescription);
+        } else {
+           mEthernetGroup.setVisibility(View.GONE);
+        }
         if (DEBUG) Slog.d(TAG,
                 String.format("wifi: %s sig=%d act=%d",
                     (mWifiVisible ? "VISIBLE" : "GONE"),
@@ -180,7 +199,7 @@ public class SignalClusterView
             mMobileGroup.setVisibility(View.GONE);
         }
 
-        if (mMobileVisible && mWifiVisible && mIsAirplaneMode) {
+        if (mMobileVisible && (mWifiVisible || mEthernetVisible) && mIsAirplaneMode) {
             mSpacer.setVisibility(View.INVISIBLE);
         } else {
             mSpacer.setVisibility(View.GONE);
@@ -192,7 +211,7 @@ public class SignalClusterView
                     mMobileStrengthId, mMobileActivityId, mMobileTypeId));
 
         mMobileType.setVisibility(
-                !mWifiVisible ? View.VISIBLE : View.GONE);
+                !(mWifiVisible || mEthernetVisible) ? View.VISIBLE : View.GONE);
 
         updateSettings();
     }

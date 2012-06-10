@@ -1384,6 +1384,9 @@ public abstract class Context {
      *  <dt> {@link #WIFI_SERVICE} ("wifi")
      *  <dd> A {@link android.net.wifi.WifiManager WifiManager} for management of
      * Wi-Fi connectivity.
+     *  <dt> {@link #ETHERNET_SERVICE} ("ethernet")
+     *  <dd> A {@link android.net.ethernet.EthernetManager EthernetManager} for management of
+     * Ethernet connectivity.
      * <dt> {@link #INPUT_METHOD_SERVICE} ("input_method")
      * <dd> An {@link android.view.inputmethod.InputMethodManager InputMethodManager}
      * for management of input methods.
@@ -1430,6 +1433,8 @@ public abstract class Context {
      * @see android.net.ConnectivityManager
      * @see #WIFI_SERVICE
      * @see android.net.wifi.WifiManager
+     * @see #ETHERNET_SERVICE
+     * @see android.net.ethernet.EthernetManager
      * @see #AUDIO_SERVICE
      * @see android.media.AudioManager
      * @see #TELEPHONY_SERVICE
@@ -1662,6 +1667,16 @@ public abstract class Context {
      * @see android.net.wifi.WifiManager
      */
     public static final String WIFI_SERVICE = "wifi";
+
+    /**
+     * Use with {@link #getSystemService} to retrieve a {@link
+     * android.net.ethernet.EthernetManager} for handling management of
+     * Ethernet access.
+     *
+     * @see #getSystemService
+     * @see android.net.ethernet.EthernetManager
+     */
+    public static final String ETHERNET_SERVICE = "ethernet";
 
     /**
      * Use with {@link #getSystemService} to retrieve a {@link
