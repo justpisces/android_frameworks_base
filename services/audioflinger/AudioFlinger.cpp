@@ -1042,9 +1042,17 @@ status_t AudioFlinger::setParameters(int ioHandle, const String8& keyValuePairs)
             LOGD("setParameters(): DockState %d trick done!", device);
         }
 #else
+
+        // add for switch hdmi audio
+        if (param.get(String8(AUDIO_PARAMETER_STREAM_ROUTING), value) == NO_ERROR) {
+            for (uint32_t i = 0; i < mPlaybackThreads.size(); i++) {
+                 mPlaybackThreads.valueAt(i)->setParameters(keyValuePairs);
+           }
+        }
         return final_result;
 #endif
     }
+
 
 #ifdef WITH_QCOM_LPA
     // Ensure that the routing to LPA is invoked only when the LPA stream is
