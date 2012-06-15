@@ -49,8 +49,8 @@ LOCAL_C_INCLUDES :=                                                 \
 	$(TOP)/external/tremolo/Tremolo \
 	$(TOP)/external/cedarx/CedarXAndroid/IceCreamSandwich \
 	$(TOP)/external/cedarx/CedarX/include \
-	$(TOP)/external/cedarx/include/include_audio \
-	$(TOP)/external/cedarx/include/include_cedarv \
+	$(TOP)/external/cedarx/CedarX/include/include_audio \
+	$(TOP)/external/cedarx/CedarX/include/include_cedarv \
 	$(TOP)/external/cedarx/CedarA \
 	$(TOP)/external/cedarx/CedarA/include \
 
