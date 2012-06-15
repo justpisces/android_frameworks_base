@@ -79,7 +79,6 @@
     </LinearLayout>
     <View style="@style/StatusBarPanelSettingsPanelSeparator" />
 
-
     <!-- Toggle 3 -->
     <LinearLayout
             android:id="@+id/toggle_3"
