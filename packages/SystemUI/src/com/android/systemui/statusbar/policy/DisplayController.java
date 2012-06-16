@@ -31,6 +31,8 @@ import com.android.systemui.statusbar.policy.DisplayHotPlugPolicy;
 import android.media.MediaPlayer;
 import android.media.AudioSystem;
 import com.android.systemui.R;
+import android.os.SystemProperties;
+import android.provider.Settings;
 
 public class DisplayController extends BroadcastReceiver {
     private static final String TAG = "StatusBar.DisplayController";
@@ -85,21 +87,33 @@ public class DisplayController extends BroadcastReceiver {
     	
     	private void onHdmiPlugIn(Intent intent) 
 		{
-			int     maxscreen;
-			int     maxhdmimode;
+			int maxscreen;
+                        int hdmimode;
 			
 	        if (SHOW_HDMIPLUG_IN_CALL) 
 			{
 	          	Slog.d(TAG,"onHdmiPlugIn Starting!\n");
 	          	mDisplayManager.setDisplayParameter(0,DisplayManager.DISPLAY_OUTPUT_TYPE_LCD,0);
-				maxhdmimode	= mDisplayManager.getMaxHdmiMode();
-	          	mDisplayManager.setDisplayParameter(1,DisplayManager.DISPLAY_OUTPUT_TYPE_HDMI,maxhdmimode);
+	          	String  str = Settings.System.getString(mContext.getContentResolver(), Settings.System.HDMI_RESOLUTION);
+	          	hdmimode = mDisplayManager.getMaxHdmiMode();
+	          	if (str!=null && str.equals("1080_60") ) {
+	          		hdmimode = DisplayManager.DISPLAY_TVFORMAT_1080P_60HZ;
+	          	}
+	          	if (str!=null && str.equals("1080_50") ) {
+	          		hdmimode = DisplayManager.DISPLAY_TVFORMAT_1080P_50HZ;
+	          	}
+	          	if (str!=null && str.equals("720_60") ) {
+	          		hdmimode = DisplayManager.DISPLAY_TVFORMAT_720P_60HZ;
+	          	}
+	          	if (str!=null && str.equals("720_50") ) {
+	          		hdmimode = DisplayManager.DISPLAY_TVFORMAT_720P_50HZ;
+	          	}
+	          	mDisplayManager.setDisplayParameter(1,DisplayManager.DISPLAY_OUTPUT_TYPE_HDMI,hdmimode);
 		        mDisplayManager.setDisplayMode(DisplayManager.DISPLAY_MODE_DUALSAME);
 				maxscreen = mDisplayManager.getMaxWidthDisplay();
 				MediaPlayer.setScreen(1);
+				SystemProperties.set("audio.routing", Integer.toString(AudioSystem.DEVICE_OUT_AUX_DIGITAL));
 				AudioSystem.setParameters("routing="+AudioSystem.DEVICE_OUT_AUX_DIGITAL);
-				//Camera.setCameraScreen(1);
-		        //mDisplayManager.setDisplayOutputType(0,DisplayManager.DISPLAY_OUTPUT_TYPE_HDMI,DisplayManager.DISPLAY_TVFORMAT_1080P_60HZ);
 	        }
 	    }
 	

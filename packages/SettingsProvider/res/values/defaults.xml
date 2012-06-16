@@ -142,4 +142,7 @@
     <bool name="def_dtmf_tones_enabled">true</bool>
     <!-- Default for UI touch sounds enabled -->
     <bool name="def_sound_effects_enabled">true</bool>
+    <!-- Default for HDMI resolution -->
+    <string name="def_hdmi_resolution">auto</string>
+
 </resources>
