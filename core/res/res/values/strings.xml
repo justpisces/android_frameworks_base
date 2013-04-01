@@ -318,6 +318,13 @@
     <!-- label for item that screenshots in phone options dialog -->
     <string name="global_action_screenshot">Screenshot</string>
 
+    <!-- label for item that toggles expand desktop mode -->
+    <string name="global_actions_toggle_expanded_desktop_mode">Expanded desktop</string>
+    <!-- status message in phone options dialog for when expand desktop mode is on -->
+    <string name="global_actions_expanded_desktop_mode_on_status">Enabled</string>
+    <!-- status message in phone options dialog for when expand desktop mode is off -->
+    <string name="global_actions_expanded_desktop_mode_off_status">Disabled</string>
+
     <!-- Button to reboot the phone, within the Reboot Options dialog -->
     <string name="reboot_reboot">Reboot</string>
     <!-- Button to reboot the phone into recovery, within the Reboot Options dialog -->
@@ -548,6 +555,13 @@
     <string name="permdesc_sendSms">Allows the app to send SMS messages.
      This may result in unexpected charges. Malicious apps may cost you money by
      sending messages without your confirmation.</string>
+
+    <!-- Title of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
+    <string name="permlab_sendMockSms">Send mock SMS messages</string>
+    <!-- Description of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
+    <string name="permdesc_sendMockSms">Allows the app to send mock SMS messages.
+     This allows an app send SMS to trusted applications. Malicious apps could send messages
+     continuously, blocking the device notification system and disrupting the user.</string>
 
      <!-- Title of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
     <string name="permlab_sendSmsNoConfirmation">send SMS messages with no confirmation</string>
@@ -1279,6 +1293,16 @@
     <string name="permlab_vibrate">control vibration</string>
     <!-- Description of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
     <string name="permdesc_vibrate">Allows the app to control the vibrator.</string>
+
+    <!-- Title of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
+    <string name="permlab_fm_radio_receiver">control FM receiver</string>
+    <!-- Description of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
+    <string name="permdesc_fm_radio_receiver">Allows the application to control the FM receiver.</string>
+
+    <!-- Title of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
+    <string name="permlab_fm_radio_transmitter">control FM transmitter</string>
+    <!-- Description of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
+    <string name="permdesc_fm_radio_transmitter">Allows the application to control the FM transmitter.</string>
 
     <!-- Title of an application permission, listed so the user can choose whether they want to allow the application to do this. -->
     <string name="permlab_flashlight">control flashlight</string>
@@ -3361,6 +3385,8 @@
     <string name="find">Find</string>
     <!-- ActionBar action to use the current selection to perform a web search [CHAR-LIMIT=16] -->
     <string name="websearch">Web Search</string>
+    <!-- ActionBar action to open the current selection as a url in the browser [CHAR-LIMIT=16] -->
+    <string name="openurl">Open Url</string>
 
     <!-- Network positioning notification ticker. The name of the user (e.g. John Doe) who sent
          the request is shown as a dynamic string. -->
@@ -3764,4 +3790,7 @@
     <string name="symbol_picker_lt">\u2264\u00ab\u2039</string>
     <string name="symbol_picker_gt">\u2265\u00bb\u203a</string>
 
+    <!-- Hardware Rotation lock string -->
+    <string name="toast_rotation_unlocked">Display Rotation Unlocked</string>
+    <string name="toast_rotation_locked">Display Rotation Locked</string>
 </resources>

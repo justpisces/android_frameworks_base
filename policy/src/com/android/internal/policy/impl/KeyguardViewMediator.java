@@ -872,11 +872,14 @@ public class KeyguardViewMediator implements KeyguardViewCallback,
                 }
             } else if (TelephonyManager.ACTION_PHONE_STATE_CHANGED.equals(action)) {
                 mPhoneState = intent.getStringExtra(TelephonyManager.EXTRA_STATE);
+                final ContentResolver cr = mContext.getContentResolver();
 
                 synchronized (KeyguardViewMediator.this) {
                     if (TelephonyManager.EXTRA_STATE_IDLE.equals(mPhoneState)  // call ending
                             && !mScreenOn                           // screen off
-                            && mExternallyEnabled) {                // not disabled by any app
+                            && mExternallyEnabled                   // not disabled by any app
+                            && Settings.System.getInt(cr,
+                                    Settings.System.LOCKSCREEN_IF_CALL_ENDS_WITH_SCREENOFF, 1) == 1) {
 
                         // note: this is a way to gracefully reenable the keyguard when the call
                         // ends and the screen is off without always reenabling the keyguard
@@ -1287,7 +1290,7 @@ public class KeyguardViewMediator implements KeyguardViewCallback,
             }
 
             if (DEBUG) {
-                Log.d(TAG, "adjustStatusBarLocked: mShowing=" + mShowing + " mHidden=" + mHidden
+                if (mKeyguardViewProperties != null) Log.d(TAG, "adjustStatusBarLocked: mShowing=" + mShowing + " mHidden=" + mHidden
                         + " isSecure=" + isSecure() + " --> flags=0x" + Integer.toHexString(flags));
             }
 

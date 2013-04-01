@@ -285,7 +285,9 @@ public class AudioService extends IAudioService.Stub implements OnFinished {
 
     private boolean mLinkNotificationWithVolume;
 
-    private static final int HEADSET_VOLUME_RESTORE_CAP_MUSIC = 8; // Out of 15
+    // Cap used for safe headset volume restore. The value directly applies
+    // to AudioSystem.STREAM_MUSIC volume and is rescaled for other streams.
+    private static final int HEADSET_VOLUME_RESTORE_CAP = 10;
 
     private final AudioSystem.ErrorCallback mAudioSystemCallback = new AudioSystem.ErrorCallback() {
         public void onError(int error) {
@@ -2197,11 +2199,15 @@ public class AudioService extends IAudioService.Stub implements OnFinished {
                     //   (step <= oldIndex < 2 * step) is equivalent to: (old UI index == 1)
                     if (step <= oldIndex && oldIndex < 2 * step) {
                         ringerMode = RINGER_MODE_VIBRATE;
+                        if (mVoiceCapable)
+                            adjustVolumeIndex = false;
                     }
                 } else {
                     // (oldIndex < step) is equivalent to (old UI index == 0)
                     if ((oldIndex < step) && mPrevVolDirection != AudioManager.ADJUST_LOWER) {
                         ringerMode = RINGER_MODE_SILENT;
+                        if (mVoiceCapable)
+                            adjustVolumeIndex = false;
                     }
                 }
             }
@@ -2420,12 +2426,12 @@ public class AudioService extends IAudioService.Stub implements OnFinished {
         int device = AudioSystem.getDevicesForStream(stream);
         if ((device & (device - 1)) != 0) {
             // Multiple device selection is either:
-            //  - speaker + one other device: give priority to speaker in this case.
+            //  - speaker + one other device: give priority to the non-speaker device in this case.
             //  - one A2DP device + another device: happens with duplicated output. In this case
             // retain the device on the A2DP output as the other must not correspond to an active
             // selection if not the speaker.
             if ((device & AudioSystem.DEVICE_OUT_SPEAKER) != 0) {
-                device = AudioSystem.DEVICE_OUT_SPEAKER;
+                device ^= AudioSystem.DEVICE_OUT_SPEAKER;
             } else {
                 device &= AudioSystem.DEVICE_OUT_ALL_A2DP;
             }
@@ -2519,10 +2525,8 @@ public class AudioService extends IAudioService.Stub implements OnFinished {
 
                 // retrieve current volume for device
                 String name = getSettingNameForDevice(false /* lastAudible */, device);
-                // if no volume stored for current stream and device, use default volume if default
-                // device, continue otherwise
-                int defaultIndex = (device == AudioSystem.DEVICE_OUT_DEFAULT) ?
-                                        AudioManager.DEFAULT_STREAM_VOLUME[mStreamType] : -1;
+                // if no volume stored for current stream and device, use default volume
+                int defaultIndex = AudioManager.DEFAULT_STREAM_VOLUME[mStreamType];
                 int index = Settings.System.getInt(mContentResolver, name, defaultIndex);
                 if (index == -1) {
                     continue;
@@ -3571,14 +3575,26 @@ public class AudioService extends IAudioService.Stub implements OnFinished {
                         setBluetoothA2dpOnInt(false);
                     }
 
-                    // Media volume restore capping
+                    // Volume restore capping
                     final boolean capVolumeRestore = Settings.System.getInt(mContentResolver,
                             Settings.System.SAFE_HEADSET_VOLUME_RESTORE, 1) == 1;
-                    if (capVolumeRestore) {
-                        final int volume = getStreamVolume(AudioSystem.STREAM_MUSIC);
-                        if (volume > HEADSET_VOLUME_RESTORE_CAP_MUSIC) {
-                            setStreamVolume(AudioSystem.STREAM_MUSIC,
-                                    HEADSET_VOLUME_RESTORE_CAP_MUSIC, 0);
+
+                    for (int stream = 0; stream < AudioSystem.getNumStreamTypes(); stream++) {
+                        if (stream == mStreamVolumeAlias[stream]) {
+                            VolumeStreamState streamState = mStreamStates[mStreamVolumeAlias[stream]];
+                            device = getDeviceForStream(stream);
+                            // apply stored value for device
+                            streamState.applyDeviceVolume(device);
+
+                            // now reduce volume if required
+                            if (capVolumeRestore) {
+                                final int volume = getStreamVolume(stream);
+                                final int restoreCap = rescaleIndex(HEADSET_VOLUME_RESTORE_CAP,
+                                        AudioSystem.STREAM_MUSIC, stream);
+                                if (volume > restoreCap) {
+                                    setStreamVolume(stream, restoreCap, 0);
+                                }
+                            }
                         }
                     }
                 } else {
@@ -3586,6 +3602,16 @@ public class AudioService extends IAudioService.Stub implements OnFinished {
                     // Avoid disconnection glitches
                     if (noDelayInATwoDP) {
                         setBluetoothA2dpOnInt(true);
+                    }
+
+                    // Restore volumes
+                    for (int stream = 0; stream < AudioSystem.getNumStreamTypes(); stream++) {
+                        if (stream == mStreamVolumeAlias[stream]) {
+                            VolumeStreamState streamState = mStreamStates[mStreamVolumeAlias[stream]];
+                            device = getDeviceForStream(stream);
+                            // apply stored value for device
+                            streamState.applyDeviceVolume(device);
+                        }
                     }
                 }
             } else if (action.equals(Intent.ACTION_USB_AUDIO_ACCESSORY_PLUG) ||

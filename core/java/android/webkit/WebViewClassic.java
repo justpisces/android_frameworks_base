@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2012 The Android Open Source Project
+ * Copyright (c) 2012, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -686,6 +687,10 @@ public final class WebViewClassic implements WebViewProvider, WebViewProvider.Sc
     // It's used to dismiss the dialog in destroy if not done before.
     private AlertDialog mListBoxDialog = null;
 
+    // Reference to the save password dialog so it can be dimissed in
+    // destroy if not done before.
+    private AlertDialog mSavePasswordDialog = null;
+
     static final String LOGTAG = "webview";
 
     private ZoomManager mZoomManager;
@@ -733,13 +738,6 @@ public final class WebViewClassic implements WebViewProvider, WebViewProvider.Sc
         public void onTrimMemory(int level) {
             if (DebugFlags.WEB_VIEW) {
                 Log.d("WebView", "onTrimMemory: " + level);
-            }
-            // When framework reset EGL context during high memory pressure, all
-            // the existing GL resources for the html5 video will be destroyed
-            // at native side.
-            // Here we just need to clean up the Surface Texture which is static.
-            if (level >= TRIM_MEMORY_UI_HIDDEN) {
-                HTML5VideoInline.cleanupSurfaceTexture();
             }
             WebViewClassic.nativeOnTrimMemory(level);
         }
@@ -975,9 +973,9 @@ public final class WebViewClassic implements WebViewProvider, WebViewProvider.Sc
     private int mTouchHighlightY;
     private boolean mShowTapHighlight;
 
-    // Basically this proxy is used to tell the Video to update layer tree at
+    // The HTML5VideoViewManager is used to tell the Video to update layer tree at
     // SetBaseLayer time and to pause when WebView paused.
-    private HTML5VideoViewProxy mHTML5VideoViewProxy;
+    private HTML5VideoViewManager mHTML5VideoViewManager;
 
     // If we are using a set picture, don't send view updates to webkit
     private boolean mBlockWebkitViewMessages = false;
@@ -1336,20 +1334,40 @@ public final class WebViewClassic implements WebViewProvider, WebViewProvider.Sc
 
     private void onHandleUiTouchEvent(MotionEvent ev) {
         final ScaleGestureDetector detector =
-                mZoomManager.getMultiTouchGestureDetector();
+                mZoomManager.getScaleGestureDetector();
 
-        float x = ev.getX();
-        float y = ev.getY();
+        int action = ev.getActionMasked();
+        final boolean pointerUp = action == MotionEvent.ACTION_POINTER_UP;
+        final boolean configChanged =
+            action == MotionEvent.ACTION_POINTER_UP ||
+            action == MotionEvent.ACTION_POINTER_DOWN;
+        final int skipIndex = pointerUp ? ev.getActionIndex() : -1;
+
+        // Determine focal point
+        float sumX = 0, sumY = 0;
+        final int count = ev.getPointerCount();
+        for (int i = 0; i < count; i++) {
+            if (skipIndex == i) continue;
+            sumX += ev.getX(i);
+            sumY += ev.getY(i);
+        }
+        final int div = pointerUp ? count - 1 : count;
+        float x = sumX / div;
+        float y = sumY / div;
+
+        if (configChanged) {
+            mLastTouchX = Math.round(x);
+            mLastTouchY = Math.round(y);
+            mLastTouchTime = ev.getEventTime();
+            mWebView.cancelLongPress();
+            mPrivateHandler.removeMessages(SWITCH_TO_LONGPRESS);
+        }
 
         if (detector != null) {
             detector.onTouchEvent(ev);
             if (detector.isInProgress()) {
                 mLastTouchTime = ev.getEventTime();
-                x = detector.getFocusX();
-                y = detector.getFocusY();
 
-                mWebView.cancelLongPress();
-                mPrivateHandler.removeMessages(SWITCH_TO_LONGPRESS);
                 if (!mZoomManager.supportsPanDuringZoom()) {
                     return;
                 }
@@ -1360,14 +1378,9 @@ public final class WebViewClassic implements WebViewProvider, WebViewProvider.Sc
             }
         }
 
-        int action = ev.getActionMasked();
         if (action == MotionEvent.ACTION_POINTER_DOWN) {
             cancelTouch();
             action = MotionEvent.ACTION_DOWN;
-        } else if (action == MotionEvent.ACTION_POINTER_UP && ev.getPointerCount() >= 2) {
-            // set mLastTouchX/Y to the remaining points for multi-touch.
-            mLastTouchX = Math.round(x);
-            mLastTouchY = Math.round(y);
         } else if (action == MotionEvent.ACTION_MOVE) {
             // negative x or y indicate it is on the edge, skip it.
             if (x < 0 || y < 0) {
@@ -1655,7 +1668,7 @@ public final class WebViewClassic implements WebViewProvider, WebViewProvider.Sc
         // Initially use a size of two, since the user is likely to only hold
         // down two keys at a time (shift + another key)
         mKeysPressed = new Vector<Integer>(2);
-        mHTML5VideoViewProxy = null ;
+        mHTML5VideoViewManager = null;
     }
 
     @Override
@@ -1811,7 +1824,7 @@ public final class WebViewClassic implements WebViewProvider, WebViewProvider.Sc
             neverRemember.getData().putString("password", password);
             neverRemember.obj = resumeMsg;
 
-            new AlertDialog.Builder(mContext)
+            mSavePasswordDialog = new AlertDialog.Builder(mContext)
                     .setTitle(com.android.internal.R.string.save_password_label)
                     .setMessage(com.android.internal.R.string.save_password_message)
                     .setPositiveButton(com.android.internal.R.string.save_password_notnow,
@@ -1822,6 +1835,7 @@ public final class WebViewClassic implements WebViewProvider, WebViewProvider.Sc
                                 resumeMsg.sendToTarget();
                                 mResumeMsg = null;
                             }
+                            mSavePasswordDialog = null;
                         }
                     })
                     .setNeutralButton(com.android.internal.R.string.save_password_remember,
@@ -1832,6 +1846,7 @@ public final class WebViewClassic implements WebViewProvider, WebViewProvider.Sc
                                 remember.sendToTarget();
                                 mResumeMsg = null;
                             }
+                            mSavePasswordDialog = null;
                         }
                     })
                     .setNegativeButton(com.android.internal.R.string.save_password_never,
@@ -1842,6 +1857,7 @@ public final class WebViewClassic implements WebViewProvider, WebViewProvider.Sc
                                 neverRemember.sendToTarget();
                                 mResumeMsg = null;
                             }
+                            mSavePasswordDialog = null;
                         }
                     })
                     .setOnCancelListener(new OnCancelListener() {
@@ -1851,6 +1867,7 @@ public final class WebViewClassic implements WebViewProvider, WebViewProvider.Sc
                                 resumeMsg.sendToTarget();
                                 mResumeMsg = null;
                             }
+                            mSavePasswordDialog = null;
                         }
                     }).show();
             // Return true so that WebViewCore will pause while the dialog is
@@ -2089,6 +2106,10 @@ public final class WebViewClassic implements WebViewProvider, WebViewProvider.Sc
         if (mListBoxDialog != null) {
             mListBoxDialog.dismiss();
             mListBoxDialog = null;
+        }
+        if (mSavePasswordDialog != null) {
+            mSavePasswordDialog.dismiss();
+            mSavePasswordDialog = null;
         }
         if (mWebViewCore != null) {
             // Tell WebViewCore to destroy itself
@@ -2470,6 +2491,8 @@ public final class WebViewClassic implements WebViewProvider, WebViewProvider.Sc
 
     private void loadUrlImpl(String url, Map<String, String> extraHeaders) {
         switchOutDrawHistory();
+        if (mHTML5VideoViewManager != null)
+            mHTML5VideoViewManager.suspend();
         WebViewCore.GetUrlData arg = new WebViewCore.GetUrlData();
         arg.mUrl = url;
         arg.mExtraHeaders = extraHeaders;
@@ -2603,6 +2626,8 @@ public final class WebViewClassic implements WebViewProvider, WebViewProvider.Sc
     public void reload() {
         clearHelpers();
         switchOutDrawHistory();
+        if (mHTML5VideoViewManager != null)
+            mHTML5VideoViewManager.suspend();
         mWebViewCore.sendMessage(EventHub.RELOAD);
     }
 
@@ -2682,6 +2707,8 @@ public final class WebViewClassic implements WebViewProvider, WebViewProvider.Sc
 
     private void goBackOrForward(int steps, boolean ignoreSnapshot) {
         if (steps != 0) {
+            if (mHTML5VideoViewManager != null)
+                mHTML5VideoViewManager.suspend();
             clearHelpers();
             mWebViewCore.sendMessage(EventHub.GO_BACK_FORWARD, steps,
                     ignoreSnapshot ? 1 : 0);
@@ -3430,8 +3457,8 @@ public final class WebViewClassic implements WebViewProvider, WebViewProvider.Sc
             mWebViewCore.sendMessage(EventHub.ON_PAUSE);
             // We want to pause the current playing video when switching out
             // from the current WebView/tab.
-            if (mHTML5VideoViewProxy != null) {
-                mHTML5VideoViewProxy.pauseAndDispatch();
+            if (mHTML5VideoViewManager != null) {
+                mHTML5VideoViewManager.pauseAndDispatch();
             }
             if (mNativeClass != 0) {
                 nativeSetPauseDrawing(mNativeClass, true);
@@ -3758,6 +3785,7 @@ public final class WebViewClassic implements WebViewProvider, WebViewProvider.Sc
             invalidate();  // So we draw again
 
             if (!mScroller.isFinished()) {
+                mSendScroll.setPostpone(true);
                 int rangeX = computeMaxScrollX();
                 int rangeY = computeMaxScrollY();
                 int overflingDistance = mOverflingDistance;
@@ -3785,6 +3813,7 @@ public final class WebViewClassic implements WebViewProvider, WebViewProvider.Sc
                 if (mOverScrollGlow != null) {
                     mOverScrollGlow.absorbGlow(x, y, oldX, oldY, rangeX, rangeY);
                 }
+                mSendScroll.setPostpone(false);
             } else {
                 if (mTouchMode == TOUCH_DRAG_LAYER_MODE) {
                     // Update the layer position instead of WebView.
@@ -3804,7 +3833,7 @@ public final class WebViewClassic implements WebViewProvider, WebViewProvider.Sc
                     }
                 }
                 if (oldX != getScrollX() || oldY != getScrollY()) {
-                    sendOurVisibleRect();
+                    mSendScroll.send(true);
                 }
             }
         } else {
@@ -4345,7 +4374,7 @@ public final class WebViewClassic implements WebViewProvider, WebViewProvider.Sc
 
         // A multi-finger gesture can look like a long press; make sure we don't take
         // long press actions if we're scaling.
-        final ScaleGestureDetector detector = mZoomManager.getMultiTouchGestureDetector();
+        final ScaleGestureDetector detector = mZoomManager.getScaleGestureDetector();
         if (detector != null && detector.isInProgress()) {
             return false;
         }
@@ -4432,8 +4461,8 @@ public final class WebViewClassic implements WebViewProvider, WebViewProvider.Sc
             mWebViewCore.resumeWebKitDraw();
         }
 
-        if (mHTML5VideoViewProxy != null) {
-            mHTML5VideoViewProxy.setBaseLayer(layer);
+        if (mHTML5VideoViewManager != null) {
+            mHTML5VideoViewManager.setBaseLayer(layer);
         }
     }
 
@@ -4513,11 +4542,11 @@ public final class WebViewClassic implements WebViewProvider, WebViewProvider.Sc
     private void ensureSelectionHandles() {
         if (mSelectHandleCenter == null) {
             mSelectHandleCenter = mContext.getResources().getDrawable(
-                    com.android.internal.R.drawable.text_select_handle_middle);
+                    com.android.internal.R.drawable.text_select_handle_middle).mutate();
             mSelectHandleLeft = mContext.getResources().getDrawable(
-                    com.android.internal.R.drawable.text_select_handle_left);
+                    com.android.internal.R.drawable.text_select_handle_left).mutate();
             mSelectHandleRight = mContext.getResources().getDrawable(
-                    com.android.internal.R.drawable.text_select_handle_right);
+                    com.android.internal.R.drawable.text_select_handle_right).mutate();
             mHandleAlpha.setAlpha(mHandleAlpha.getAlpha());
             mSelectHandleCenterOffset = new Point(0,
                     -mSelectHandleCenter.getIntrinsicHeight());
@@ -4609,7 +4638,7 @@ public final class WebViewClassic implements WebViewProvider, WebViewProvider.Sc
             if (oldScrollX != getScrollX() || oldScrollY != getScrollY()) {
                 mWebViewPrivate.onScrollChanged(getScrollX(), getScrollY(), oldScrollX, oldScrollY);
             } else {
-                sendOurVisibleRect();
+                mSendScroll.send(true);
             }
         }
     }
@@ -5584,10 +5613,31 @@ public final class WebViewClassic implements WebViewProvider, WebViewProvider.Sc
         contentScrollTo(scrollX, scrollY, false);
     }
 
+    private final class SendScrollToWebCore implements Runnable {
+        public void run() {
+            if (!mInOverScrollMode) {
+                sendOurVisibleRect();
+            }
+        }
+        private boolean mPostpone = false;
+        public void setPostpone(boolean set) { mPostpone = set; }
+        public void send(boolean force) {
+            mPrivateHandler.removeCallbacks(this);
+            if (!mPostpone || force) {
+                run();
+            } else {
+                mPrivateHandler.postAtFrontOfQueue(this);
+            }
+        }
+    }
+
+    SendScrollToWebCore mSendScroll = new SendScrollToWebCore();
+
     @Override
     public void onScrollChanged(int l, int t, int oldl, int oldt) {
+        mSendScroll.send(false);
+
         if (!mInOverScrollMode) {
-            sendOurVisibleRect();
             // update WebKit if visible title bar height changed. The logic is same
             // as getVisibleTitleHeightImpl.
             int titleHeight = getTitleHeight();
@@ -5752,7 +5802,7 @@ public final class WebViewClassic implements WebViewProvider, WebViewProvider.Sc
     * and the middle point for multi-touch.
     */
     private void handleTouchEventCommon(MotionEvent event, int action, int x, int y) {
-        ScaleGestureDetector detector = mZoomManager.getMultiTouchGestureDetector();
+        ScaleGestureDetector detector = mZoomManager.getScaleGestureDetector();
 
         long eventTime = event.getEventTime();
 
@@ -7294,14 +7344,14 @@ public final class WebViewClassic implements WebViewProvider, WebViewProvider.Sc
                     int layerId = msg.arg1;
 
                     String url = (String) msg.obj;
-                    if (mHTML5VideoViewProxy != null) {
-                        mHTML5VideoViewProxy.enterFullScreenVideo(layerId, url);
+                    if (mHTML5VideoViewManager != null) {
+                        mHTML5VideoViewManager.enterFullscreenVideo(layerId, url);
                     }
                     break;
 
                 case EXIT_FULLSCREEN_VIDEO:
-                    if (mHTML5VideoViewProxy != null) {
-                        mHTML5VideoViewProxy.exitFullScreenVideo();
+                    if (mHTML5VideoViewManager != null) {
+                        mHTML5VideoViewManager.exitFullscreenVideo();
                     }
                     break;
 
@@ -7915,6 +7965,9 @@ public final class WebViewClassic implements WebViewProvider, WebViewProvider.Sc
                     syncSelectionCursors();
                 } else {
                     adjustSelectionCursors();
+                    if (mSelectCallback != null) {
+                        mSelectCallback.setOpenUrlVisibility();
+                    }
                 }
                 if (mIsCaretSelection) {
                     resetCaretTimer();
@@ -8389,8 +8442,21 @@ public final class WebViewClassic implements WebViewProvider, WebViewProvider.Sc
      *
      * only used by the Browser
      */
-    public void setHTML5VideoViewProxy(HTML5VideoViewProxy proxy) {
-        mHTML5VideoViewProxy = proxy;
+    public void registerHTML5VideoViewProxy(HTML5VideoViewProxy proxy) {
+        if (mHTML5VideoViewManager == null)
+            mHTML5VideoViewManager = new HTML5VideoViewManager(this);
+        mHTML5VideoViewManager.registerProxy(proxy);
+    }
+
+    /**
+     * Clean up method for registerHTML5VideoViewProxy
+     *
+     * @hide only used by the Browser
+     */
+    public void unregisterHTML5VideoViewProxy(HTML5VideoViewProxy proxy) {
+        if (mHTML5VideoViewManager != null) {
+            mHTML5VideoViewManager.unregisterProxy(proxy);
+        }
     }
 
     /**

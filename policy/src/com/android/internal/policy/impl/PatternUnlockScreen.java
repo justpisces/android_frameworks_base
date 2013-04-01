@@ -21,6 +21,7 @@ import android.content.res.Configuration;
 import android.os.CountDownTimer;
 import android.os.SystemClock;
 import android.security.KeyStore;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.MotionEvent;
@@ -36,7 +37,7 @@ import com.android.internal.widget.LockPatternView.Cell;
 import java.util.List;
 
 /**
- * This is the screen that shows the 9 circle unlock widget and instructs
+ * This is the screen that shows the circle unlock widget and instructs
  * the user how to unlock their device, or make an emergency call.
  */
 class PatternUnlockScreen extends LinearLayoutWithDefaultTouchRecepient
@@ -197,15 +198,39 @@ class PatternUnlockScreen extends LinearLayoutWithDefaultTouchRecepient
         // vibrate mode will be the same for the life of this screen
         mLockPatternView.setTactileFeedbackEnabled(mLockPatternUtils.isTactileFeedbackEnabled());
 
+        mLockPatternView.setLockPatternSize(mLockPatternUtils.getLockPatternSize());
+
         // assume normal footer mode for now
         updateFooter(FooterMode.Normal);
 
         setFocusableInTouchMode(true);
+
+        mLockPatternUtils.updateLockPatternSize();
     }
 
     public void setEnableFallback(boolean state) {
         if (DEBUG) Log.d(TAG, "setEnableFallback(" + state + ")");
         mEnableFallback = state;
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+        if (keyCode == KeyEvent.KEYCODE_BACK
+                || keyCode == KeyEvent.KEYCODE_HOME
+                || keyCode == KeyEvent.KEYCODE_MENU) {
+            event.startTracking();
+            return true;
+        }
+        return false;
+    }
+
+    @Override
+    public boolean onKeyLongPress(int keyCode, KeyEvent event) {
+        if (LockScreen.handleKeyLongPress(getContext(), keyCode)) {
+            mCallback.pokeWakelock();
+            return true;
+        }
+        return false;
     }
 
     @Override
@@ -348,6 +373,7 @@ class PatternUnlockScreen extends LinearLayoutWithDefaultTouchRecepient
         }
 
         public void onPatternDetected(List<LockPatternView.Cell> pattern) {
+            mLockPatternUtils.updateLockPatternSize();
             if (mLockPatternUtils.checkPattern(pattern)) {
                 mLockPatternView
                         .setDisplayMode(LockPatternView.DisplayMode.Correct);

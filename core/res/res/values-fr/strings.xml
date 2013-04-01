@@ -33,6 +33,11 @@
     <string name="global_action_reboot">Redémarrer</string>
     <string name="global_action_screenshot">Capture d\'écran</string>
     <string name="global_action_choose_profile">Profils</string>
+    <string name="global_actions_toggle_expanded_desktop_mode">Bureau étendu</string>
+
+    <!-- label for item that toggles expand desktop mode -->
+    <string name="global_actions_expanded_desktop_mode_on_status">Activé</string>
+    <string name="global_actions_expanded_desktop_mode_off_status">Désactivé</string>
 
     <!-- Names of default profiles. -->
     <string name="profileNameDefault">Défaut</string>
@@ -112,7 +117,10 @@
     <string name="weather_NW">NO</string>
 
     <!-- Lock screen Weather - error messages -->
+    <string name="weather_no_data">Aucune donnée</string>
     <string name="weather_tap_to_refresh">Appuyer pour rafraîchir</string>
+    <string name="weather_refreshing">Actualisation</string>
+    <string name="weather_last_sync_just_now">À l\'instant</string>
 
     <string name="byteShort" msgid="8340973892742019101">"o"</string>
     <string name="kilobyteShort" msgid="5973789783504771878">"Ko"</string>
@@ -793,6 +801,7 @@
     <string name="lockscreen_password_wrong" msgid="5737815393253165301">"Veuillez réessayer."</string>
     <string name="faceunlock_multiple_failures" msgid="754137583022792429">"Nombre maximal autorisé de tentatives Face Unlock atteint."</string>
     <string name="lockscreen_plugged_in" msgid="8057762828355572315">"En charge (<xliff:g id="NUMBER">%d</xliff:g><xliff:g id="PERCENT">%%</xliff:g>)"</string>
+    <string name="lockscreen_discharging">"Déchargement (<xliff:g id="NUMBER">%d</xliff:g><xliff:g id="PERCENT">%%</xliff:g>)"</string>
     <string name="lockscreen_charged" msgid="4938930459620989972">"Chargé"</string>
     <string name="lockscreen_battery_short" msgid="4477264849386850266">"<xliff:g id="NUMBER">%d</xliff:g> <xliff:g id="PERCENT">%%</xliff:g>"</string>
     <string name="lockscreen_low_battery" msgid="1482873981919249740">"Branchez votre chargeur."</string>
