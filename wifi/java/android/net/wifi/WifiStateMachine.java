@@ -214,6 +214,9 @@ public class WifiStateMachine extends StateMachine {
     /* Tracks current frequency mode */
     private AtomicInteger mFrequencyBand = new AtomicInteger(WifiManager.WIFI_FREQUENCY_BAND_AUTO);
 
+    /* Tracks current country code */
+    private String mCountryCode = "GB";
+
     /* Tracks if we are filtering Multicast v4 packets. Default is to filter. */
     private AtomicBoolean mFilteringMulticastV4Packets = new AtomicBoolean(true);
 
@@ -366,11 +369,6 @@ public class WifiStateMachine extends StateMachine {
     /* P2p commands */
     public static final int CMD_ENABLE_P2P                = BASE + 131;
     public static final int CMD_DISABLE_P2P               = BASE + 132;
-
-
-    /* wpa_supplicant v6 doesnt report the intf disabled event */
-    static final int CMD_FORCE_STOPPED_STATE              = BASE + 153; // 0x20099
-
 
     private static final int CONNECT_MODE   = 1;
     private static final int SCAN_ONLY_MODE = 2;
@@ -1051,6 +1049,13 @@ public class WifiStateMachine extends StateMachine {
     }
 
     /**
+     * Returns the operational country code
+     */
+    public String getCountryCode() {
+        return mCountryCode;
+    }
+
+    /**
      * Set the operational frequency band
      * @param band
      * @param persist {@code true} if the setting should be remembered.
@@ -1245,14 +1250,14 @@ public class WifiStateMachine extends StateMachine {
            ip settings */
         InterfaceConfiguration ifcg = null;
         try {
-            ifcg = mNwService.getInterfaceConfig(mInterfaceName);
+            ifcg = mNwService.getInterfaceConfig(mTetherInterfaceName);
             if (ifcg != null) {
                 ifcg.setLinkAddress(
                         new LinkAddress(NetworkUtils.numericToInetAddress("0.0.0.0"), 0));
-                mNwService.setInterfaceConfig(mInterfaceName, ifcg);
+                mNwService.setInterfaceConfig(mTetherInterfaceName, ifcg);
             }
         } catch (Exception e) {
-            loge("Error resetting interface " + mInterfaceName + ", :" + e);
+            loge("Error resetting interface " + mTetherInterfaceName + ", :" + e);
         }
 
         if (mCm.untether(mTetherInterfaceName) != ConnectivityManager.TETHER_ERROR_NO_ERROR) {
@@ -1595,7 +1600,7 @@ public class WifiStateMachine extends StateMachine {
 
     /**
      * Record the detailed state of a network.
-     * @param state the new @{code DetailedState}
+     * @param state the new {@code DetailedState}
      */
     private void setNetworkDetailedState(NetworkInfo.DetailedState state) {
         if (DBG) {
@@ -1945,8 +1950,7 @@ public class WifiStateMachine extends StateMachine {
                     replyToMessage(message, WifiWatchdogStateMachine.RSSI_FETCH_FAILED);
                     break;
                 default:
-                    loge("Error! unhandled message 0x" + Integer.toHexString(message.what) +
-                         " - " + (message.what - BASE));
+                    loge("Error! unhandled message" + message);
                     break;
             }
             return HANDLED;
@@ -2089,10 +2093,10 @@ public class WifiStateMachine extends StateMachine {
                         loge("Failed to reload STA firmware " + e);
                         // continue
                     }
-                    try {
-                        //A runtime crash can leave the interface up and
-                        //this affects connectivity when supplicant starts up.
-                        //Ensure interface is down before a supplicant start.
+                   try {
+                       //A runtime crash can leave the interface up and
+                       //this affects connectivity when supplicant starts up.
+                       //Ensure interface is down before a supplicant start.
                         mNwService.setInterfaceDown(mInterfaceName);
                         //Set privacy extensions
                         mNwService.setInterfaceIpv6PrivacyExtensions(mInterfaceName, true);
@@ -2686,7 +2690,9 @@ public class WifiStateMachine extends StateMachine {
                 case CMD_SET_COUNTRY_CODE:
                     String country = (String) message.obj;
                     if (DBG) log("set country code " + country);
-                    if (!mWifiNative.setCountryCode(country.toUpperCase())) {
+                    if (mWifiNative.setCountryCode(country.toUpperCase())) {
+                        mCountryCode = country;
+                    } else {
                         loge("Failed to set country code " + country);
                     }
                     break;
@@ -2809,52 +2815,17 @@ public class WifiStateMachine extends StateMachine {
         public void enter() {
             if (DBG) log(getName() + "\n");
             EventLog.writeEvent(EVENTLOG_WIFI_STATE_CHANGED, getName());
-            sendMessageDelayed(CMD_FORCE_STOPPED_STATE, 2000);
         }
-
-        /* If the supplicant doesnt report the interface down event,
-         * The wifi stay in stopping state and wifi never resume...
-         * this add another gate to exit this Stopping State...
-         */
-        private void forceTransitionToStopped(SupplicantState state) {
-
-            loge("Supplicant did not report INTERFACE_DISABLED, forcing stopped state ! was " + state);
-
-            setWifiEnabled(false);
-
-            try {
-                mNwService.setInterfaceDown(mInterfaceName);
-            }
-            catch (Exception e) {}
-
-            setWifiState(WIFI_STATE_DISABLED);
-            exit();
-        }
-
         @Override
         public boolean processMessage(Message message) {
             if (DBG) log(getName() + message.toString() + "\n");
             switch(message.what) {
-                case CMD_FORCE_STOPPED_STATE:
-                    log("forced stopped state");
-                    forceTransitionToStopped(SupplicantState.INTERFACE_DISABLED);
-                    break;
                 case WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT:
                     SupplicantState state = handleSupplicantStateChange(message);
-                    if (DBG) log("Supplicant state is "+state);
                     if (state == SupplicantState.INTERFACE_DISABLED) {
-                        log("Received INTERFACE_DISABLED message");
                         transitionTo(mDriverStoppedState);
                     }
                     break;
-
-                case CMD_ENABLE_ALL_NETWORKS:
-                    loge("ENABLE_ALL_NETWORKS command received in stopping state, restarting wifi");
-                    // send DRIVER_HUNG_EVENT to mDefaultState to disable/enable the wifi...
-                    transitionTo(mDefaultState);
-                    sendMessage(WifiMonitor.DRIVER_HUNG_EVENT);
-                    return HANDLED;
-
                     /* Queue driver commands */
                 case CMD_START_DRIVER:
                 case CMD_STOP_DRIVER:
@@ -2870,8 +2841,6 @@ public class WifiStateMachine extends StateMachine {
                     deferMessage(message);
                     break;
                 default:
-                    log(getName() + " message not handled 0x" + Integer.toHexString(message.what) +
-                         " - " + (message.what - BASE) + "\n");
                     return NOT_HANDLED;
             }
             return HANDLED;
@@ -3577,6 +3546,13 @@ public class WifiStateMachine extends StateMachine {
                 case WifiMonitor.NETWORK_DISCONNECTION_EVENT:
                     if (DBG) log("Network connection lost");
                     handleNetworkDisconnect();
+                    break;
+                case WifiMonitor.AUTHENTICATION_FAILURE_EVENT:
+                    // Disregard auth failure events during WPS connection. The
+                    // EAP sequence is retried several times, and there might be
+                    // failures (especially for wps pin). We will get a WPS_XXX
+                    // event at the end of the sequence anyway.
+                    if (DBG) log("Ignore auth failure during WPS connection");
                     break;
                 case WifiMonitor.SUPPLICANT_STATE_CHANGE_EVENT:
                     //Throw away supplicant state changes when WPS is running.

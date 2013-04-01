@@ -214,6 +214,7 @@
   <java-symbol type="id" name="status_bar_latest_event_content" />
   <java-symbol type="id" name="action_divider" />
   <java-symbol type="id" name="overflow_divider" />
+  <java-symbol type="id" name="openurl" />
 
   <java-symbol type="attr" name="actionModeShareDrawable" />
   <java-symbol type="attr" name="alertDialogCenterButtons" />
@@ -263,9 +264,11 @@
   <java-symbol type="bool" name="config_useMasterVolume" />
   <java-symbol type="bool" name="config_enableWallpaperService" />
   <java-symbol type="bool" name="config_sendAudioBecomingNoisy" />
+  <java-symbol type="bool" name="config_show_cmIMESwitcher"/>
   <java-symbol type="bool" name="config_enableScreenshotChord" />
   <java-symbol type="bool" name="config_bluetooth_default_profiles" />
   <java-symbol type="bool" name="config_wifiApFirmwareReload" />
+  <java-symbol type="bool" name="config_wifiApStartInterface" />
 
   <java-symbol type="integer" name="config_cursorWindowSize" />
   <java-symbol type="integer" name="config_longPressOnPowerBehavior" />
@@ -1214,6 +1217,7 @@
   <java-symbol type="bool" name="config_carDockEnablesAccelerometer" />
   <java-symbol type="bool" name="config_deskDockEnablesAccelerometer" />
   <java-symbol type="bool" name="config_disableMenuKeyInLockScreen" />
+  <java-symbol type="bool" name="config_disableHomeUnlockSetting" />
   <java-symbol type="bool" name="config_enableLockBeforeUnlockScreen" />
   <java-symbol type="bool" name="config_enableLockScreenRotation" />
   <java-symbol type="bool" name="config_lidControlsSleep" />
@@ -1256,6 +1260,7 @@
   <java-symbol type="id" name="button7" />
   <java-symbol type="id" name="carrier" />
   <java-symbol type="id" name="date" />
+  <java-symbol type="id" name="date_line" />
   <java-symbol type="id" name="eight" />
   <java-symbol type="id" name="emergencyCallButton" />
   <java-symbol type="id" name="faceLockAreaView" />
@@ -1617,6 +1622,9 @@
 
   <!-- From SettingsProvider -->
   <java-symbol type="raw" name="fallbackring" />
+
+  <!-- From KeyguardStatusViewManager -->
+  <java-symbol type="dimen" name="keyguard_lockscreen_status_line_font_right_margin" />
 
   <!-- From Settings -->
   <java-symbol type="array" name="config_mobile_hotspot_provision_app" />
@@ -3686,6 +3694,8 @@
   <java-symbol type="bool" name="config_smsSamsungCdmaAlternateMessageIDEncoding" />
   <java-symbol type="integer" name="config_deviceHardwareKeys" />
   <java-symbol type="bool" name="config_hasRemovableLid" />
+  <java-symbol type="bool" name="config_samsung_stk" />
+  <java-symbol type="integer" name="config_wallpaperMaxWidth" />
 
   <!-- Notification and battery light -->
   <java-symbol type="bool" name="config_intrusiveBatteryLed" />
@@ -3696,6 +3706,9 @@
   <java-symbol type="string" name="global_action_screenshot" />
   <java-symbol type="string" name="global_action_choose_profile" />
   <java-symbol type="string" name="global_action_reboot" />
+  <java-symbol type="string" name="global_actions_toggle_expanded_desktop_mode" />
+  <java-symbol type="string" name="global_actions_expanded_desktop_mode_off_status" />
+  <java-symbol type="string" name="global_actions_expanded_desktop_mode_on_status" />
   <java-symbol type="string" name="global_actions" />
   <java-symbol type="string" name="reboot_system" />
   <java-symbol type="string" name="reboot_progress" />
@@ -3704,6 +3717,7 @@
   <java-symbol type="drawable" name="ic_lock_screenshot" />
   <java-symbol type="drawable" name="ic_lock_reboot" />
   <java-symbol type="drawable" name="ic_lock_profile" />
+  <java-symbol type="drawable" name="ic_lock_expanded_desktop" />
 
   <!-- Profiles -->
   <java-symbol type="xml" name="profile_default" />
@@ -3921,4 +3935,14 @@
 
   <!-- WiredAccessoryObserver -->
   <java-symbol type="array" name="config_accessoryDockNames" />
+
+  <!-- HW rotation lock -->
+  <java-symbol type="string" name="toast_rotation_unlocked" />
+  <java-symbol type="string" name="toast_rotation_locked" />
+
+  <!-- IME Picker showing upon pressing Sym Key -->
+  <java-symbol type="bool" name="config_symKeyShowsImePicker" />
+
+  <!-- Stylus gestures -->
+  <java-symbol type="bool" name="config_stylusGestures" />
 </resources>

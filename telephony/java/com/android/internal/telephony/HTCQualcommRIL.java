@@ -99,7 +99,7 @@ public class HTCQualcommRIL extends QualcommSharedRIL implements CommandsInterfa
             return status;
 
         int appIndex = -1;
-        if (mPhoneType == RILConstants.CDMA_PHONE) {
+        if (mPhoneType == RILConstants.CDMA_PHONE && !skipCdmaSubcription) {
             appIndex = status.getCdmaSubscriptionAppIndex();
             Log.d(LOG_TAG, "This is a CDMA PHONE " + appIndex);
         } else {
@@ -107,7 +107,17 @@ public class HTCQualcommRIL extends QualcommSharedRIL implements CommandsInterfa
             Log.d(LOG_TAG, "This is a GSM PHONE " + appIndex);
         }
 
-        mAid = status.getApplication(appIndex).aid;
+        if (numApplications > 0) {
+            IccCardApplication application = status.getApplication(appIndex);
+            mAid = application.aid;
+            mUSIM = application.app_type
+                      == IccCardApplication.AppType.APPTYPE_USIM;
+            mSetPreferredNetworkType = mPreferredNetworkType;
+
+            if (TextUtils.isEmpty(mAid))
+               mAid = "";
+            Log.d(LOG_TAG, "mAid " + mAid);
+        }
 
         return status;
     }

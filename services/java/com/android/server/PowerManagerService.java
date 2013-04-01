@@ -196,6 +196,9 @@ public class PowerManagerService extends IPowerManager.Stub
     static final int INITIAL_BUTTON_BRIGHTNESS = PowerManager.BRIGHTNESS_OFF;
     static final int INITIAL_KEYBOARD_BRIGHTNESS = PowerManager.BRIGHTNESS_OFF;
 
+    // Max time (microseconds) to allow a CPU boost for
+    static final int MAX_CPU_BOOST_TIME = 5000000;
+
     private final int MY_UID;
     private final int MY_PID;
 
@@ -253,7 +256,8 @@ public class PowerManagerService extends IPowerManager.Stub
     private ScreenBrightnessAnimator mScreenBrightnessAnimator;
     private boolean mWaitingForFirstLightSensor = false;
     private boolean mStillNeedSleepNotification;
-    private boolean mIsPowered = false;
+    private boolean mIsPlugged = false;
+    private boolean mIsCharging = false;
     private IActivityManager mActivityService;
     private IBatteryStats mBatteryStats;
     private BatteryService mBatteryService;
@@ -362,6 +366,7 @@ public class PowerManagerService extends IPowerManager.Stub
     private static native int nativeSetScreenState(boolean on);
     private static native void nativeShutdown();
     private static native void nativeReboot(String reason) throws IOException;
+    private static native void nativeCpuBoost(int duration);
 
     /*
     static PrintStream mLog;
@@ -454,10 +459,12 @@ public class PowerManagerService extends IPowerManager.Stub
         @Override
         public void onReceive(Context context, Intent intent) {
             synchronized (mLocks) {
-                boolean wasPowered = mIsPowered;
-                mIsPowered = mBatteryService.isPowered();
+                boolean wasPlugged = mIsPlugged;
+                boolean wasCharging = mIsCharging;
+                mIsPlugged = mBatteryService.isPlugged();
+                mIsCharging = mBatteryService.isCharging();
 
-                if (mIsPowered != wasPowered) {
+                if (mIsPlugged != wasPlugged) {
                     // update mStayOnWhilePluggedIn wake lock
                     updateWakeLockLocked();
 
@@ -472,7 +479,7 @@ public class PowerManagerService extends IPowerManager.Stub
                     // turn on.  Some devices want this because they don't have a
                     // charging LED.
                     synchronized (mLocks) {
-                        if (!wasPowered || (mPowerState & SCREEN_ON_BIT) != 0 ||
+                        if (!wasPlugged || (mPowerState & SCREEN_ON_BIT) != 0 ||
                                 mUnplugTurnsOnScreen) {
                             forceUserActivityLocked();
                         }
@@ -818,7 +825,7 @@ public class PowerManagerService extends IPowerManager.Stub
 
     private void updateWakeLockLocked() {
         final int stayOnConditions = getStayOnConditionsLocked();
-        if (stayOnConditions != 0 && mBatteryService.isPowered(stayOnConditions)) {
+        if (stayOnConditions != 0 && mBatteryService.isPlugged(stayOnConditions)) {
             // keep the device on if we're plugged in and mStayOnWhilePluggedIn is set.
             mStayOnWhilePluggedInScreenDimLock.acquire();
             mStayOnWhilePluggedInPartialLock.acquire();
@@ -1194,6 +1201,15 @@ public class PowerManagerService extends IPowerManager.Stub
         }
     }
 
+    public void cpuBoost(int duration)
+    {
+        if (duration > 0 && duration <= MAX_CPU_BOOST_TIME) {
+            nativeCpuBoost(duration);
+        } else {
+            Log.e(TAG, "Invalid boost duration: " + duration);
+        }
+    }
+
     private static String lockType(int type)
     {
         switch (type)
@@ -1238,7 +1254,8 @@ public class PowerManagerService extends IPowerManager.Stub
 
         synchronized (mLocks) {
             pw.println("Power Manager State:");
-            pw.println("  mIsPowered=" + mIsPowered
+            pw.println("  mIsPlugged=" + mIsPlugged
+                    + " mIsCharging=" + mIsCharging
                     + " mPowerState=" + mPowerState
                     + " mScreenOffTime=" + (SystemClock.elapsedRealtime()-mScreenOffTime)
                     + " ms");
@@ -2052,7 +2069,7 @@ public class PowerManagerService extends IPowerManager.Stub
     }
 
     private boolean batteryIsLow() {
-        return (!mIsPowered &&
+        return (!mIsCharging &&
                 mBatteryService.getBatteryLevel() <= LOW_BATTERY_THRESHOLD);
     }
 
@@ -2179,7 +2196,7 @@ public class PowerManagerService extends IPowerManager.Stub
                         steps = (int)(ANIM_STEPS*ratio);
                     }
                     final int stayOnConditions = getStayOnConditionsLocked();
-                    if (stayOnConditions != 0 && mBatteryService.isPowered(stayOnConditions)) {
+                    if (stayOnConditions != 0 && mBatteryService.isPlugged(stayOnConditions)) {
                         // If the "stay on while plugged in" option is
                         // turned on, then the screen will often not
                         // automatically turn off while plugged in.  To
@@ -2404,6 +2421,14 @@ public class PowerManagerService extends IPowerManager.Stub
                     Message msg = mScreenBrightnessHandler
                             .obtainMessage(ANIMATE_LIGHTS, mask, newValue);
                     mScreenBrightnessHandler.sendMessageDelayed(msg, delay);
+                } else {
+                    final boolean doScreenAnimation = (mask & (SCREEN_BRIGHT_BIT | SCREEN_ON_BIT)) != 0;
+                    final boolean turnOff = currentValue == PowerManager.BRIGHTNESS_OFF;
+                    if (turnOff && doScreenAnimation) {
+                        // Cancel all pending animations since we're turning off
+                        mScreenBrightnessHandler.removeCallbacksAndMessages(null);
+                        screenOffFinishedAnimatingLocked(mScreenOffReason);
+                    }
                 }
             }
         }
@@ -2467,9 +2492,6 @@ public class PowerManagerService extends IPowerManager.Stub
                     final boolean doScreenAnim = (mask & (SCREEN_BRIGHT_BIT | SCREEN_ON_BIT)) != 0;
                     final boolean turningOff = endValue == PowerManager.BRIGHTNESS_OFF;
                     if (turningOff && doScreenAnim) {
-                        // Cancel all pending animations since we're turning off
-                        mScreenBrightnessHandler.removeCallbacksAndMessages(null);
-                        screenOffFinishedAnimatingLocked(mScreenOffReason);
                         duration = 200; // TODO: how long should this be?
                     }
                     if (doScreenAnim) {
@@ -2502,17 +2524,6 @@ public class PowerManagerService extends IPowerManager.Stub
     }
 
     private int getPreferredBrightness() {
-/*
-        if (mScreenBrightnessOverride >= 0) {
-            return mScreenBrightnessOverride;
-        } else if (mLightSensorScreenBrightness >= 0 && mUseSoftwareAutoBrightness
-                && mAutoBrightessEnabled) {
-            return mLightSensorScreenBrightness;
-        }
-        final int brightness = mScreenBrightnessSetting;
-         // Don't let applications turn the screen all the way off
-        return Math.max(brightness, mScreenBrightnessDim);
-*/
         try {
             if (mScreenBrightnessOverride >= 0) {
                 return mScreenBrightnessOverride;
@@ -3220,6 +3231,7 @@ public class PowerManagerService extends IPowerManager.Stub
         boolean enabled = (mode == SCREEN_BRIGHTNESS_MODE_AUTOMATIC);
         if (mUseSoftwareAutoBrightness && mAutoBrightessEnabled != enabled) {
             mAutoBrightessEnabled = enabled;
+            enableLightSensorLocked(mAutoBrightessEnabled);
             if (isScreenOn()) {
                 // force recompute of backlight values
                 if (mLightSensorValue >= 0) {
@@ -3785,6 +3797,42 @@ public class PowerManagerService extends IPowerManager.Stub
 
     private void handleLightSensorValue(int value, boolean immediate) {
         long milliseconds = SystemClock.elapsedRealtime();
+        mLightFilterSample = value;
+        if (mAutoBrightessEnabled && mLightFilterEnabled) {
+            if (mLightFilterRunning && mLightSensorValue != -1) {
+                // Large changes -> quick response
+                int diff = value - (int)mLightSensorValue;
+                if (mLightFilterReset != -1 && diff > mLightFilterReset && // Only increasing
+                        mLightSensorValue < 1500) { // Only "indoors"
+                    if (mDebugLightSensor) {
+                        Slog.d(TAGF, "reset cause: " + value +
+                                " " + mLightSensorValue + " " + diff);
+                    }
+                    // Push filter faster towards sensor value
+                    lightFilterReset((int)(mLightSensorValue + diff / 2f));
+                }
+                if (mDebugLightSensor) {
+                    Slog.d(TAGF, "sample: " + value);
+                }
+            } else {
+                if (mLightSensorValue == -1 ||
+                        milliseconds < mLastScreenOnTime + mLightSensorWarmupTime) {
+                    // process the value immediately if screen has just turned on
+                    lightFilterReset(-1);
+                    lightSensorChangedLocked(value, true);
+                }
+                if (!mLightFilterRunning) {
+                    if (mDebugLightSensor) {
+                        Slog.d(TAGF, "start: " + value);
+                    }
+                    mLightFilterRunning = true;
+                    mHandler.postDelayed(mLightFilterTask, LIGHT_SENSOR_DELAY);
+                }
+            }
+            return;
+        }
+
+        // Light filter disabled
         if (mLightSensorValue == -1
                 || milliseconds < mLastScreenOnTime + mLightSensorWarmupTime
                 || mWaitingForFirstLightSensor) {
@@ -3829,66 +3877,6 @@ public class PowerManagerService extends IPowerManager.Stub
                         Slog.d(TAG, "onSensorChanged: Clearing mWaitingForFirstLightSensor.");
                     }
                     mWaitingForFirstLightSensor = false;
-                }
-
-                int value = (int)event.values[0];
-                long milliseconds = SystemClock.elapsedRealtime();
-                if (mDebugLightSensor) {
-                    Slog.d(TAG, "onSensorChanged: light value: " + value);
-                }
-                mHandler.removeCallbacks(mAutoBrightnessTask);
-                mLightFilterSample = value;
-                if (mAutoBrightessEnabled && mLightFilterEnabled) {
-                    if (mLightFilterRunning && mLightSensorValue != -1) {
-                        // Large changes -> quick response
-                        int diff = value - (int)mLightSensorValue;
-                        if (mLightFilterReset != -1 && diff > mLightFilterReset && // Only increasing
-                                mLightSensorValue < 1500) { // Only "indoors"
-                            if (mDebugLightSensor) {
-                                Slog.d(TAGF, "reset cause: " + value +
-                                        " " + mLightSensorValue + " " + diff);
-                            }
-                            // Push filter faster towards sensor value
-                            lightFilterReset((int)(mLightSensorValue + diff / 2f));
-                        }
-                        if (mDebugLightSensor) {
-                            Slog.d(TAGF, "sample: " + value);
-                        }
-                    } else {
-                        if (mLightSensorValue == -1 ||
-                                milliseconds < mLastScreenOnTime + mLightSensorWarmupTime) {
-                            // process the value immediately if screen has just turned on
-                            lightFilterReset(-1);
-                            lightSensorChangedLocked(value, true);
-                        }
-                        if (!mLightFilterRunning) {
-                            if (mDebugLightSensor) {
-                                Slog.d(TAGF, "start: " + value);
-                            }
-                            mLightFilterRunning = true;
-                            mHandler.postDelayed(mLightFilterTask, LIGHT_SENSOR_DELAY);
-                        }
-                    }
-                    return;
-                }
-
-                if (mLightSensorValue != value) {
-                    if (mLightSensorValue == -1 ||
-                            milliseconds < mLastScreenOnTime + mLightSensorWarmupTime) {
-                        // process the value immediately if screen has just turned on
-                        lightSensorChangedLocked(value, true);
-                    } else {
-                        // delay processing to debounce the sensor
-                        mHandler.removeCallbacks(mAutoBrightnessTask);
-                        mLightSensorPendingDecrease = (value < mLightSensorValue);
-                        mLightSensorPendingIncrease = (value > mLightSensorValue);
-                        if (mLightSensorPendingDecrease || mLightSensorPendingIncrease) {
-                            mLightSensorPendingValue = value;
-                            mHandler.postDelayed(mAutoBrightnessTask, LIGHT_SENSOR_DELAY);
-                        }
-                    }
-                } else {
-                        mLightSensorPendingValue = value;
                 }
             }
         }

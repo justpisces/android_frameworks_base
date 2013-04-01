@@ -72,7 +72,10 @@ import dalvik.system.Zygote;
 import java.io.File;
 import java.util.Timer;
 import java.util.TimerTask;
+
 import java.lang.reflect.Constructor;
+import com.stericsson.hardware.fm.FmReceiverService;
+import com.stericsson.hardware.fm.FmTransmitterService;
 
 class ServerThread extends Thread {
     private static final String TAG = "SystemServer";
@@ -135,6 +138,8 @@ class ServerThread extends Thread {
                 : Integer.parseInt(factoryTestStr);
         final boolean headless = "1".equals(SystemProperties.get("ro.config.headless", "0"));
 
+        AccountManagerService accountManager = null;
+        ContentService contentService = null;
         LightsService lights = null;
         PowerManagerService power = null;
         BatteryService battery = null;
@@ -153,6 +158,7 @@ class ServerThread extends Thread {
         BluetoothService bluetooth = null;
         BluetoothA2dpService bluetoothA2dp = null;
         DockObserver dock = null;
+        RotationSwitchObserver rotateSwitch = null;
         UsbService usb = null;
         SerialService serial = null;
         UiModeManagerService uiMode = null;
@@ -211,14 +217,14 @@ class ServerThread extends Thread {
             // The AccountManager must come before the ContentService
             try {
                 Slog.i(TAG, "Account Manager");
-                ServiceManager.addService(Context.ACCOUNT_SERVICE,
-                        new AccountManagerService(context));
+                accountManager = new AccountManagerService(context);
+                ServiceManager.addService(Context.ACCOUNT_SERVICE, accountManager);
             } catch (Throwable e) {
                 Slog.e(TAG, "Failure starting Account Manager", e);
             }
 
             Slog.i(TAG, "Content Manager");
-            ContentService.main(context,
+            contentService = ContentService.main(context,
                     factoryTest == SystemServer.FACTORY_TEST_LOW_LEVEL);
 
             Slog.i(TAG, "System Content Providers");
@@ -288,6 +294,9 @@ class ServerThread extends Thread {
             Slog.e("System", "******************************************");
             Slog.e("System", "************ Failure starting core service", e);
         }
+
+        boolean hasRotationLock = context.getResources().getBoolean(com.android
+                .internal.R.bool.config_hasRotationLockSwitch);
 
         DevicePolicyManagerService devicePolicy = null;
         StatusBarManagerService statusBar = null;
@@ -471,6 +480,21 @@ class ServerThread extends Thread {
             }
 
             try {
+                Slog.i(TAG, "FM receiver Service");
+                ServiceManager.addService("fm_receiver",
+                        new FmReceiverService(context));
+            } catch (Throwable e) {
+                Slog.e(TAG, "Failure starting FM receiver Service", e);
+            }
+
+            try {
+                Slog.i(TAG, "FM transmitter Service");
+                ServiceManager.addService("fm_transmitter",
+                        new FmTransmitterService(context));
+            } catch (Throwable e) {
+                Slog.e(TAG, "Failure starting FM transmitter Service", e);
+            }
+            try {
                 Slog.i(TAG, "UpdateLock Service");
                 ServiceManager.addService(Context.UPDATE_LOCK_SERVICE,
                         new UpdateLockService(context));
@@ -493,6 +517,20 @@ class ServerThread extends Thread {
                 ServiceManager.addService(Context.PROFILE_SERVICE, profile);
             } catch (Throwable e) {
                 Slog.e(TAG, "Failure starting Profile Manager", e);
+            }
+
+            try {
+                if (accountManager != null)
+                    accountManager.systemReady();
+            } catch (Throwable e) {
+                reportWtf("making Account Manager Service ready", e);
+            }
+
+            try {
+                if (contentService != null)
+                    contentService.systemReady();
+            } catch (Throwable e) {
+                reportWtf("making Content Service ready", e);
             }
 
             try {
@@ -572,6 +610,16 @@ class ServerThread extends Thread {
                 dock = new DockObserver(context, power);
             } catch (Throwable e) {
                 reportWtf("starting DockObserver", e);
+            }
+
+            try {
+                if (hasRotationLock) {
+                    Slog.i(TAG, "Rotation Switch Observer");
+                    // Listen for switch changes
+                    rotateSwitch = new RotationSwitchObserver(context);
+                }
+            } catch (Throwable e) {
+                reportWtf("starting RotationSwitchObserver", e);
             }
 
             try {
@@ -823,6 +871,7 @@ class ServerThread extends Thread {
         final NetworkPolicyManagerService networkPolicyF = networkPolicy;
         final ConnectivityService connectivityF = connectivity;
         final DockObserver dockF = dock;
+        final RotationSwitchObserver rotateSwitchF = rotateSwitch;
         final UsbService usbF = usb;
         final ThrottleService throttleF = throttle;
         final UiModeManagerService uiModeF = uiMode;
@@ -879,6 +928,11 @@ class ServerThread extends Thread {
                     if (dockF != null) dockF.systemReady();
                 } catch (Throwable e) {
                     reportWtf("making Dock Service ready", e);
+                }
+                try {
+                    if (rotateSwitchF != null) rotateSwitchF.systemReady();
+                } catch (Throwable e) {
+                    reportWtf("making Rotation Switch Service ready", e);
                 }
                 try {
                     if (usbF != null) usbF.systemReady();

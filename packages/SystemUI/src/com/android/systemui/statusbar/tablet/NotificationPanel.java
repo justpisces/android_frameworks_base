@@ -24,17 +24,19 @@ import android.content.Context;
 import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.util.Slog;
+import android.view.Display;
 import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewTreeObserver;
+import android.view.WindowManager;
 import android.view.animation.AccelerateInterpolator;
 import android.view.animation.DecelerateInterpolator;
 import android.view.animation.Interpolator;
 import android.widget.RelativeLayout;
-import android.widget.ScrollView;
 
 import com.android.systemui.ExpandHelper;
 import com.android.systemui.R;
@@ -197,6 +199,27 @@ public class NotificationPanel extends RelativeLayout implements StatusBarPanel,
         return true;
     }
 
+    @Override
+    public boolean dispatchKeyEvent(KeyEvent event) {
+    final int keyCode = event.getKeyCode();
+        switch (keyCode) {
+            // We exclusively handle the back key by hiding this panel.
+            case KeyEvent.KEYCODE_BACK: {
+                if (event.getAction() == KeyEvent.ACTION_UP) {
+                    mBar.animateCollapse();
+                }
+                return true;
+            }
+            // We react to the home key but let the system handle it.
+            case KeyEvent.KEYCODE_HOME: {
+                if (event.getAction() == KeyEvent.ACTION_UP) {
+                    mBar.animateCollapse();
+                }
+            } break;
+        }
+        return super.dispatchKeyEvent(event);
+    }
+
     /*
     @Override
     protected void onLayout(boolean changed, int l, int t, int r, int b) {
@@ -306,6 +329,18 @@ public class NotificationPanel extends RelativeLayout implements StatusBarPanel,
     void addSettingsView() {
         LayoutInflater infl = LayoutInflater.from(getContext());
         mSettingsView = infl.inflate(R.layout.system_bar_settings_view, mContentFrame, false);
+
+        // set height
+        mSettingsView.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED);
+        int currentHeight = mSettingsView.getMeasuredHeight();
+        WindowManager wm = (WindowManager)getContext().getSystemService(Context.WINDOW_SERVICE);
+        Display d = wm.getDefaultDisplay();
+        int maxHeight = d.getHeight() - mTitleArea.getHeight();
+        if (currentHeight > maxHeight) {
+            currentHeight = maxHeight;
+        }
+        mSettingsView.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, currentHeight));
+
         mSettingsView.setVisibility(View.GONE);
         mContentFrame.addView(mSettingsView);
     }

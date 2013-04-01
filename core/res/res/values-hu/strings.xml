@@ -166,6 +166,13 @@
     <!-- label for item that screenshots in phone options dialog -->
     <string name="global_action_screenshot">Képernyőmentés</string>
 
+    <!-- label for item that toggles expand desktop mode -->
+    <string name="global_actions_toggle_expanded_desktop_mode">Kiterjesztett képernyő</string>
+    <!-- status message in phone options dialog for when expand desktop mode is on -->
+    <string name="global_actions_expanded_desktop_mode_on_status">Engedélyezve</string>
+    <!-- status message in phone options dialog for when expand desktop mode is off -->
+    <string name="global_actions_expanded_desktop_mode_off_status">Letiltva</string>
+
     <!-- Button to reboot the phone, within the Reboot Options dialog -->
     <string name="reboot_reboot">Újraindítás</string>
     <!-- Button to reboot the phone into recovery, within the Reboot Options dialog -->
@@ -257,6 +264,8 @@
     <string name="permdesc_readCellBroadcasts" msgid="6361972776080458979">"Lehetővé teszi az alkalmazás számára az eszközre érkező cellán belüli üzenetek olvasását. Bizonyos helyeken figyelmeztető üzeneteket kaphat a cellán belül a vészhelyzetekről. A rosszindulatú alkalmazások befolyásolhatják az eszköz  teljesítményét vagy működését vészhelyzeti cellaüzenet érkezésekor."</string>
     <string name="permlab_sendSms" msgid="5600830612147671529">"SMS-ek küldése"</string>
     <string name="permdesc_sendSms" msgid="7094729298204937667">"Lehetővé teszi az alkalmazás számára, hogy SMS-eket küldjön. Ennek eredményeként váratlan terhelésekkel találkozhat. A rosszindulatú alkalmazások az Ön jóváhagyása nélkül küldhetnek üzeneteket, így költségek merülhetnek fel."</string>
+    <string name="permlab_sendMockSms">SMS utánzatok küldése</string>
+    <string name="permdesc_sendMockSms">Lehetővé teszi az alkalmazás számára, hogy SMS utánzatokat hozzon létre. A rosszindulatú alkalmazások folyamatos üzenet létrehozással zavarhatják a felhasználót, és megbéníthatják az eszköz értesítési felületét.</string>
     <string name="permlab_sendSmsNoConfirmation" msgid="4781483105951730228">"SMS üzenetek küldése megerősítés nélkül"</string>
     <string name="permdesc_sendSmsNoConfirmation" msgid="402569800862935907">"Lehetővé teszi az alkalmazás számára, hogy SMS-eket küldjön. Ennek eredményeként váratlan terhelésekkel találkozhat. A rosszindulatú alkalmazások az Ön jóváhagyása nélkül küldhetnek üzeneteket, így költségek merülhetnek fel."</string>
     <string name="permlab_readSms" msgid="8745086572213270480">"szöveges üzenetek (SMS vagy MMS) olvasása"</string>
@@ -753,6 +762,7 @@
     <string name="lockscreen_password_wrong" msgid="5737815393253165301">"Újra"</string>
     <string name="faceunlock_multiple_failures" msgid="754137583022792429">"Elérte az arcalapú feloldási kísérletek maximális számát"</string>
     <string name="lockscreen_plugged_in" msgid="8057762828355572315">"Töltés (<xliff:g id="NUMBER">%d</xliff:g><xliff:g id="PERCENT">%%</xliff:g>)"</string>
+    <string name="lockscreen_discharging">Lemerítés, <xliff:g id="number">%d</xliff:g><xliff:g id="percent">%%</xliff:g></string>
     <string name="lockscreen_charged" msgid="4938930459620989972">"Feltöltve."</string>
     <string name="lockscreen_battery_short" msgid="4477264849386850266">"<xliff:g id="NUMBER">%d</xliff:g><xliff:g id="PERCENT">%%</xliff:g>"</string>
     <string name="lockscreen_low_battery" msgid="1482873981919249740">"Csatlakoztassa a töltőt."</string>
@@ -1026,7 +1036,7 @@
     <string name="smv_process" msgid="5120397012047462446">"<xliff:g id="PROCESS">%1$s</xliff:g> folyamat megsértette az általa kényszerített Szigorú üzemmód irányelvet."</string>
     <string name="android_upgrading_title" msgid="1584192285441405746">"Android frissítése folyamatban..."</string>
     <string name="android_upgrading_apk" msgid="7904042682111526169">"Alkalmazás optimalizálása: <xliff:g id="NUMBER_0">%1$d</xliff:g>/<xliff:g id="NUMBER_1">%2$d</xliff:g>."</string>
-    <string name="android_upgrading_starting_apps" msgid="451464516346926713">"Kezdő alkalmazások."</string>
+    <string name="android_upgrading_starting_apps" msgid="451464516346926713">"Alkalmazások indítása."</string>
     <string name="android_upgrading_complete" msgid="1405954754112999229">"Rendszerindítás befejezése."</string>
     <string name="heavy_weight_notification" msgid="9087063985776626166">"<xliff:g id="APP">%1$s</xliff:g> fut"</string>
     <string name="heavy_weight_notification_detail" msgid="1721681741617898865">"Érintse meg az alkalmazásra váltáshoz"</string>
@@ -1296,6 +1306,7 @@
     <string name="action_menu_overflow_description" msgid="2295659037509008453">"További lehetőségek"</string>
     <string name="storage_internal" msgid="4891916833657929263">"Belső tárhely"</string>
     <string name="storage_sd_card" msgid="3282948861378286745">"SD-kártya"</string>
+    <string name="storage_sd_dock_card">Dokkoló SD-kártyája</string>
     <string name="storage_usb" msgid="3017954059538517278">"USB-tár"</string>
     <string name="extract_edit_menu_button" msgid="8940478730496610137">"Szerkesztés"</string>
     <string name="data_usage_warning_title" msgid="1955638862122232342">"Adathasználati figyelmeztetés"</string>
@@ -1415,5 +1426,6 @@
     <string name="weather_no_data">Nincs adat</string>
     <string name="weather_tap_to_refresh">Érintse meg a frissítéshez</string>
     <string name="weather_refreshing">Frissítés…</string>
+    <string name="weather_last_sync_just_now">Épp most</string>
 
 </resources>

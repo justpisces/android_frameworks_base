@@ -41,9 +41,18 @@ public class BatteryController extends BroadcastReceiver {
     private ArrayList<ImageView> mIconViews = new ArrayList<ImageView>();
     private ArrayList<TextView> mLabelViews = new ArrayList<TextView>();
 
-    private static final int BATTERY_STYLE_NORMAL  = 0;
-    private static final int BATTERY_STYLE_TEXT    = 1;
-    private static final int BATTERY_STYLE_GONE    = 2;
+    private static final int BATTERY_STYLE_NORMAL         = 0;
+    private static final int BATTERY_STYLE_PERCENT        = 1;
+    /***
+     * BATTERY_STYLE_CIRCLE* cannot be handled in this controller, since we cannot get views from
+     * statusbar here. Yet it is listed for completion and not to confuse at future updates
+     * See CircleBattery.java for more info
+     *
+     * set to public to be reused by CircleBattery
+     */
+    public  static final int BATTERY_STYLE_CIRCLE         = 2;
+    public  static final int BATTERY_STYLE_CIRCLE_PERCENT = 3;
+    private static final int BATTERY_STYLE_GONE           = 4;
 
     private static final int BATTERY_ICON_STYLE_NORMAL      = R.drawable.stat_sys_battery;
     private static final int BATTERY_ICON_STYLE_CHARGE      = R.drawable.stat_sys_battery_charge;
@@ -54,6 +63,7 @@ public class BatteryController extends BroadcastReceiver {
     private static final int BATTERY_TEXT_STYLE_MIN     = R.string.status_bar_settings_battery_meter_min_format;
 
     private boolean mBatteryPlugged = false;
+    private boolean mBatteryCharging = false;
     private int mBatteryStyle;
     private int mBatteryIcon = BATTERY_ICON_STYLE_NORMAL;
 
@@ -102,6 +112,7 @@ public class BatteryController extends BroadcastReceiver {
         if (action.equals(Intent.ACTION_BATTERY_CHANGED)) {
             final int level = intent.getIntExtra(BatteryManager.EXTRA_LEVEL, 0);
             mBatteryPlugged = intent.getIntExtra(BatteryManager.EXTRA_PLUGGED, 0) != 0;
+            mBatteryCharging = intent.getIntExtra(BatteryManager.EXTRA_STATUS, BatteryManager.BATTERY_STATUS_UNKNOWN) == BatteryManager.BATTERY_STATUS_CHARGING;
             int N = mIconViews.size();
             for (int i=0; i<N; i++) {
                 ImageView v = mIconViews.get(i);
@@ -124,14 +135,14 @@ public class BatteryController extends BroadcastReceiver {
         int mText = View.GONE;
         int mIconStyle = BATTERY_ICON_STYLE_NORMAL;
 
-        if (mBatteryStyle == 0) {
+        if (mBatteryStyle == BATTERY_STYLE_NORMAL) {
             mIcon = (View.VISIBLE);
-            mIconStyle = mBatteryPlugged ? BATTERY_ICON_STYLE_CHARGE
+            mIconStyle = mBatteryCharging ? BATTERY_ICON_STYLE_CHARGE
                     : BATTERY_ICON_STYLE_NORMAL;
-        } else if (mBatteryStyle == 1) {
+        } else if (mBatteryStyle == BATTERY_STYLE_PERCENT) {
             mIcon = (View.VISIBLE);
             mText = (View.VISIBLE);
-            mIconStyle = mBatteryPlugged ? BATTERY_ICON_STYLE_CHARGE_MIN
+            mIconStyle = mBatteryCharging ? BATTERY_ICON_STYLE_CHARGE_MIN
                     : BATTERY_ICON_STYLE_NORMAL_MIN;
         }
 

@@ -133,6 +133,7 @@
     <protected-broadcast android:name="android.intent.action.PROXY_CHANGE" />
 
     <protected-broadcast android:name="android.os.UpdateLock.UPDATE_LOCK_CHANGED" />
+    <protected-broadcast android:name="android.intent.action.NAVBAR_EDIT" />
 
     <!-- ====================================== -->
     <!-- Permissions for things that cost money -->
@@ -154,6 +155,14 @@
         android:protectionLevel="dangerous"
         android:label="@string/permlab_sendSms"
         android:description="@string/permdesc_sendSms" />
+
+    <!-- Allows an application to send mock SMS messages.
+         @hide -->
+    <permission android:name="android.permission.SEND_MOCK_SMS"
+        android:permissionGroup="android.permission-group.MESSAGES"
+        android:protectionLevel="dangerous"
+        android:label="@string/permlab_sendMockSms"
+        android:description="@string/permdesc_sendMockSms" />
 
     <!-- Allows an application to send SMS messages via the Messaging app with no user
          input or confirmation.
@@ -604,6 +613,22 @@
         android:protectionLevel="normal"
         android:label="@string/permlab_vibrate"
         android:description="@string/permdesc_vibrate" />
+
+    <!-- Allows access to the FM Radio receiver
+        @hide Pending API council approval -->
+    <permission android:name="com.stericsson.permission.FM_RADIO_RECEIVER"
+        android:permissionGroup="android.permission-group.HARDWARE_CONTROLS"
+        android:protectionLevel="normal"
+        android:label="@string/permlab_fm_radio_receiver"
+        android:description="@string/permdesc_fm_radio_receiver" />
+
+    <!-- Allows access to the FM Radio transmitter
+         @hide Pending API council approval -->
+    <permission android:name="com.stericsson.permission.FM_RADIO_TRANSMITTER"
+        android:permissionGroup="android.permission-group.HARDWARE_CONTROLS"
+        android:protectionLevel="dangerous"
+        android:label="@string/permlab_fm_radio_transmitter"
+        android:description="@string/permdesc_fm_radio_transmitter" />
 
     <!-- Allows access to the flashlight -->
     <permission android:name="android.permission.FLASHLIGHT"
